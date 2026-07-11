@@ -43,7 +43,7 @@ def train(args):
     if args.smoke:
         frames = torch.rand(4, 3, 64, 64, device=device)
         recon, indices, _ = model(frames)
-        loss = reconstruction_loss(recon, frames, kind=args.loss)
+        loss = reconstruction_loss(recon, frames, kind=args.loss, grad_weight=args.grad_weight)
         loss.backward()
         assert recon.shape == frames.shape and indices.shape == (4, 64)
         print(f"[smoke] recon {recon.shape}, loss {loss.item():.4f} — OK")
@@ -76,7 +76,7 @@ def train(args):
         for item in loader:
             frames = frames_from_batch(item).to(device)
             recon, _, _ = model(frames)
-            loss = reconstruction_loss(recon, frames, kind=args.loss)
+            loss = reconstruction_loss(recon, frames, kind=args.loss, grad_weight=args.grad_weight)
             opt.zero_grad()
             loss.backward()
             opt.step()
@@ -101,6 +101,8 @@ def main():
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--hidden", type=int, default=64)
     p.add_argument("--loss", choices=["l1", "mse"], default="l1")
+    p.add_argument("--grad-weight", type=float, default=0.0, dest="grad_weight",
+                   help="weight on the gradient/edge loss term; >0 preserves small objects (the car)")
     p.add_argument("--context", type=int, default=4)
     p.add_argument("--horizon", type=int, default=6)
     p.add_argument("--resume", default=None, help="checkpoint to continue training from")

@@ -172,8 +172,28 @@ def _build_fsq(levels=tuple(LEVELS), hidden=64, companding=None):
     return FSQAutoencoder(levels=levels, hidden=hidden, companding=companding)
 
 
-def reconstruction_loss(recon, target, kind="l1"):
-    return F.l1_loss(recon, target) if kind == "l1" else F.mse_loss(recon, target)
+def _gradient_loss(recon, target):
+    """L1 on horizontal+vertical image gradients. A small high-contrast object
+    (the car) is a cluster of strong edges; mean pixel L1 lets the encoder drop
+    it for ~nothing, but dropping its edges is expensive under a gradient term,
+    so this preserves small salient detail without needing its location."""
+    def grads(x):
+        dx = x[..., :, 1:] - x[..., :, :-1]
+        dy = x[..., 1:, :] - x[..., :-1, :]
+        return dx, dy
+    rdx, rdy = grads(recon)
+    tdx, tdy = grads(target)
+    return F.l1_loss(rdx, tdx) + F.l1_loss(rdy, tdy)
+
+
+def reconstruction_loss(recon, target, kind="l1", grad_weight=0.0):
+    """Pixel L1/MSE, optionally plus a gradient (edge) term weighted by
+    grad_weight. grad_weight=0 (default) is the original plain loss — unchanged;
+    a small weight (e.g. 0.5) keeps small high-detail objects like the car."""
+    base = F.l1_loss(recon, target) if kind == "l1" else F.mse_loss(recon, target)
+    if grad_weight > 0:
+        base = base + grad_weight * _gradient_loss(recon, target)
+    return base
 
 
 def count_parameters(model):
