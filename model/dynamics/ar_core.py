@@ -65,6 +65,12 @@ class SelfAttention(nn.Module):
         # RoPE uses absolute positions; during cached decode the new tokens sit
         # at offset = number of positions already cached.
         offset = 0 if kv_cache is None else kv_cache["len"]
+        if offset + T > cos.shape[0]:
+            raise ValueError(
+                f"sequence position {offset + T} exceeds the RoPE cache "
+                f"({cos.shape[0]}). Raise ARDynamics(max_seq_len=...) — a dream of "
+                f"H frames from T context needs (T+H)*{1 + 64} positions."
+            )
         cos_t = cos[offset:offset + T]
         sin_t = sin[offset:offset + T]
         q = apply_rope(q, cos_t, sin_t)
@@ -111,7 +117,7 @@ class ARDynamics(nn.Module):
     """Small causal transformer over the interleaved action/visual vocab."""
 
     def __init__(self, d_model=256, n_heads=4, n_layers=4, d_ff=None,
-                 max_seq_len=4096, vocab_size=VOCAB_SIZE):
+                 max_seq_len=8192, vocab_size=VOCAB_SIZE):
         super().__init__()
         d_ff = d_ff or 4 * d_model
         self.d_model = d_model
