@@ -25,17 +25,17 @@ const OUT = args.out ?? join(REPO_ROOT, "eval", "plots", "state_dream.gif");
 
 const data = JSON.parse(readFileSync(POSES, "utf8"));
 
-// Headless WebGL on a Linux server GPU: native GL passthrough, no sandbox
-// (blocks GPU in most container setups), and ignore the GPU blocklist so the
-// H100 isn't rejected. If the context still can't init, --use-angle=swiftshader
-// is a (slow, CPU) fallback worth trying.
-const CHROME_GL_ARGS = [
-  "--no-sandbox",
-  "--use-gl=angle",
-  "--use-angle=gl",
-  "--ignore-gpu-blocklist",
-  "--enable-gpu",
-];
+// Headless rendering backend. Default = SwiftShader (CPU software GL): on a
+// shared/busy GPU, sustained ReadPixels readbacks stall and the driver KILLS the
+// WebGL context mid-capture (frames after that come back blank/gray). CPU
+// rendering has no GPU contention, never loses the context, and — per the sim's
+// own docs — GPU pixels aren't reproducible across hardware anyway, so CPU is
+// the more correct choice for a training dataset. Set SLOWSIM_GL=gpu to try the
+// hardware path on an idle box.
+const USE_GPU = process.env.SLOWSIM_GL === "gpu";
+const CHROME_GL_ARGS = USE_GPU
+  ? ["--no-sandbox", "--use-gl=angle", "--use-angle=gl", "--ignore-gpu-blocklist", "--enable-gpu"]
+  : ["--no-sandbox", "--use-gl=angle", "--use-angle=swiftshader"];
 
 const { chromium } = await importPlaywright();
 const server = await serveDir(SIM_DIR);

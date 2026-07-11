@@ -19,6 +19,9 @@
 
     window.captureDrive = async (seed, steps, size) => {
       const canvas = document.getElementById("view");
+      let contextLost = false;
+      // Abort loudly on context loss — post-loss frames render blank/gray.
+      canvas.addEventListener("webglcontextlost", () => { contextLost = true; });
       const sim = new SlowSim({ seed });
       const renderer = new SimRenderer(canvas, { dataSize: size });
       renderer.setDisplaySize(512, 512);
@@ -26,6 +29,7 @@
       const samples = [];
       for (let i = 0; i < steps; i++) {
         const action = sim.autopilotAction();
+        if (contextLost) throw new Error("WebGL context lost mid-capture — frames would be blank. Use CPU rendering (default).");
         renderer.render(sim, 0);              // draw current state
         const rgba = renderer.capture(size);  // Uint8Array size*size*4
         samples.push({

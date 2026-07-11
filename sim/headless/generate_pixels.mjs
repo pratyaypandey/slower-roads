@@ -31,11 +31,13 @@ const { chromium } = await importPlaywright();
 const server = await serveDir(SIM_DIR);
 const port = server.address().port;
 
-// Headless WebGL on a server GPU (see render_dream.mjs for the rationale).
-const browser = await chromium.launch({
-  args: ["--no-sandbox", "--use-gl=angle", "--use-angle=gl",
-         "--ignore-gpu-blocklist", "--enable-gpu"],
-});
+// CPU (SwiftShader) by default — a shared GPU stalls on sustained ReadPixels and
+// kills the context mid-capture (see render_dream.mjs). SLOWSIM_GL=gpu opts into
+// hardware on an idle box.
+const GL_ARGS = process.env.SLOWSIM_GL === "gpu"
+  ? ["--no-sandbox", "--use-gl=angle", "--use-angle=gl", "--ignore-gpu-blocklist", "--enable-gpu"]
+  : ["--no-sandbox", "--use-gl=angle", "--use-angle=swiftshader"];
+const browser = await chromium.launch({ args: GL_ARGS });
 const page = await browser.newPage();
 page.on("console", (m) => console.log("[page]", m.text()));
 await page.goto(`http://localhost:${port}/headless/capture_page.html`);

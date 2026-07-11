@@ -18,13 +18,17 @@
     import { SlowSim } from "../core/index.js";
     import { SimRenderer } from "../render/renderer.js";
 
-    // ONE renderer for the whole run — reused across sequences. Creating a
-    // second WebGLRenderer loses the first context (ReadPixels GPU stall ->
-    // CONTEXT_LOST), and the second init then fails, so we cache it.
+    // ONE renderer for the whole run — reused across sequences.
     let _renderer = null;
+    let _contextLost = false;
     function getRenderer(size) {
       if (!_renderer) {
-        _renderer = new SimRenderer(document.getElementById("view"), { dataSize: size });
+        const canvas = document.getElementById("view");
+        // Abort loudly on context loss: a restored context has lost its GPU
+        // buffers, so frames after the loss render blank/gray. Better to fail
+        // than to silently save corrupted frames (use CPU rendering to avoid).
+        canvas.addEventListener("webglcontextlost", () => { _contextLost = true; });
+        _renderer = new SimRenderer(canvas, { dataSize: size });
         _renderer.setDisplaySize(size, size);
       }
       return _renderer;
@@ -46,6 +50,7 @@
         // the nearest road point so terrain/veg stream correctly around the car.
         const near = sim.road.nearest(pose.x, pose.z, sim.carD);
         sim.carD = near.d;
+        if (_contextLost) throw new Error("WebGL context lost mid-capture — frames would be blank. Use CPU rendering (default) instead of SLOWSIM_GL=gpu.");
         renderer.render(sim, 0);
         frames.push(toBase64(renderer.capture(size)));
         // Yield to the event loop between captures so the sustained ReadPixels
