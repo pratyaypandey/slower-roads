@@ -95,51 +95,72 @@ def deconv_block(cin, cout):
     )
 
 
-class Encoder(nn.Module):
-    """(B,3,64,64) -> z_cont (B, G*G, C). Three stride-2 convs: 64->32->16->8."""
+def _num_downsamples(frame_size, grid):
+    # Stride-2 layers to go from frame_size down to the grid side. 64->8 = 3
+    # (the default); 64->16 = 2 (finer grid, 4x the tokens = more capacity for
+    # small detail like the car).
+    n = 0
+    s = frame_size
+    while s > grid:
+        s //= 2
+        n += 1
+    if grid * (2 ** n) != frame_size:
+        raise ValueError(f"frame_size {frame_size} must be grid {grid} times a power of 2")
+    return n
 
-    def __init__(self, channels, hidden=64):
+
+class Encoder(nn.Module):
+    """(B,3,frame,frame) -> z_cont (B, grid*grid, C) via stride-2 convs. Layer
+    count derives from frame/grid so a finer grid (more tokens) is a config knob."""
+
+    def __init__(self, channels, hidden=64, grid=G, frame_size=64):
         super().__init__()
-        self.net = nn.Sequential(
-            conv_block(3, hidden, stride=2),
-            conv_block(hidden, hidden * 2, stride=2),
-            conv_block(hidden * 2, hidden * 2, stride=2),
-            nn.Conv2d(hidden * 2, channels, 1),
-        )
+        layers, cin = [], 3
+        for i in range(_num_downsamples(frame_size, grid)):
+            cout = hidden if i == 0 else hidden * 2
+            layers.append(conv_block(cin, cout, stride=2))
+            cin = cout
+        layers.append(nn.Conv2d(cin, channels, 1))
+        self.net = nn.Sequential(*layers)
 
     def forward(self, frame):
-        h = self.net(frame)                      # (B, C, 8, 8)
-        return h.flatten(2).transpose(1, 2)      # (B, G*G, C)
+        h = self.net(frame)                      # (B, C, grid, grid)
+        return h.flatten(2).transpose(1, 2)      # (B, grid*grid, C)
 
 
 class Decoder(nn.Module):
-    """codes (B, G*G, C) -> (B,3,64,64). Mirror of the encoder, sigmoid output."""
+    """codes (B, grid*grid, C) -> (B,3,frame,frame). Mirror of the encoder."""
 
-    def __init__(self, channels, hidden=64):
+    def __init__(self, channels, hidden=64, grid=G, frame_size=64):
         super().__init__()
+        self.grid = grid
         self.proj = nn.Conv2d(channels, hidden * 2, 1)
-        self.net = nn.Sequential(
-            deconv_block(hidden * 2, hidden * 2),  # 8->16
-            deconv_block(hidden * 2, hidden),      # 16->32
-            deconv_block(hidden, hidden),          # 32->64
-            nn.Conv2d(hidden, 3, 3, padding=1),
-        )
+        n = _num_downsamples(frame_size, grid)
+        layers, cin = [], hidden * 2
+        for i in range(n):
+            cout = hidden * 2 if i < n - 1 else hidden
+            layers.append(deconv_block(cin, cout))
+            cin = cout
+        layers.append(nn.Conv2d(cin, 3, 3, padding=1))
+        self.net = nn.Sequential(*layers)
 
     def forward(self, codes):
         b, n, c = codes.shape
-        h = codes.transpose(1, 2).reshape(b, c, G, G)
+        h = codes.transpose(1, 2).reshape(b, c, self.grid, self.grid)
         h = self.proj(h)
         return torch.sigmoid(self.net(h))
 
 
 class FSQAutoencoder(nn.Module):
-    # levels default comes from config.LEVELS so the tokenizer and dynamics vocab
-    # can't silently disagree; the value is unchanged from the old literal.
-    def __init__(self, levels=tuple(LEVELS), hidden=64, companding: Optional[Callable] = None):
+    # levels/grid default from config so the tokenizer and dynamics vocab can't
+    # silently disagree. grid = latent side (config.G); frame_size = input px.
+    def __init__(self, levels=tuple(LEVELS), hidden=64, companding: Optional[Callable] = None,
+                 grid=G, frame_size=64):
         super().__init__()
+        self.grid = grid
         self.fsq = FSQ(list(levels), companding=companding)
-        self.encoder = Encoder(self.fsq.num_channels, hidden)
-        self.decoder = Decoder(self.fsq.num_channels, hidden)
+        self.encoder = Encoder(self.fsq.num_channels, hidden, grid=grid, frame_size=frame_size)
+        self.decoder = Decoder(self.fsq.num_channels, hidden, grid=grid, frame_size=frame_size)
 
     def encode(self, frame):
         return self.encoder(frame)
@@ -164,7 +185,7 @@ class FSQAutoencoder(nn.Module):
 
     @property
     def tokens_per_frame(self):
-        return G * G
+        return self.grid * self.grid
 
 
 @register_tokenizer("fsq")

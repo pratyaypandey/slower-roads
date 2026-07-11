@@ -11,7 +11,9 @@ from math import prod
 # Latent grid (mirrors the tokenizer contract, §1/§2).
 LEVELS = [8, 8, 8, 5, 5]      # FSQ levels per channel
 C = len(LEVELS)               # FSQ channels per token
-G = 8                         # latent grid side -> G*G tokens per frame
+G = 16                        # latent grid side -> G*G tokens per frame
+# (16 = 256 tokens/frame at 64px: 4x the capacity of the old 8x8=64, enough to
+# preserve small detail like the car that a 64-token bottleneck discarded.)
 
 TOKENS_PER_FRAME = G * G                 # 64 visual tokens per frame
 NUM_VISUAL_TOKENS = prod(LEVELS)         # 12800 visual code indices

@@ -19,8 +19,8 @@ import sys
 # repo root. Inject the repo root so absolute `model.` imports resolve.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-LEVELS = [8, 8, 8, 5, 5]
-G = 8
+# Import from the single source so the test tracks config changes (e.g. G bumps).
+from model.dynamics.config import LEVELS, G
 EPS = 1e-3
 
 

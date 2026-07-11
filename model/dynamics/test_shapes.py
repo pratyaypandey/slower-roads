@@ -60,8 +60,8 @@ def logic_tests():
     ok &= check("is_action_token boundary",
                 (not is_action_token(NUM_VISUAL_TOKENS - 1))
                 and is_action_token(NUM_VISUAL_TOKENS))
-    ok &= check("TOKENS_PER_FRAME == G*G == 64",
-                TOKENS_PER_FRAME == G * G == 64)
+    ok &= check("TOKENS_PER_FRAME == G*G",
+                TOKENS_PER_FRAME == G * G)
 
     # Action bucketing: {steer, throttle} in [-1,1] -> si*THROTTLE_BUCKETS + ti.
     seen = {tokenize_action(s, t)
@@ -81,7 +81,7 @@ def logic_tests():
     visuals = [[t * 100 + i for i in range(TOKENS_PER_FRAME)] for t in range(T)]
     seq = interleave_frame_layout(actions, visuals)
     ok &= check("flattened length == T*FRAME_STRIDE",
-                len(seq) == T * FRAME_STRIDE == T * 65)
+                len(seq) == T * FRAME_STRIDE)
     ok &= check("every frame starts with its action token",
                 all(seq[t * FRAME_STRIDE] == actions[t] for t in range(T)))
     ok &= check("visual tokens follow each action in order",

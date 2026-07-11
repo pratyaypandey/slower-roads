@@ -45,7 +45,7 @@ def train(args):
         recon, indices, _ = model(frames)
         loss = reconstruction_loss(recon, frames, kind=args.loss, grad_weight=args.grad_weight)
         loss.backward()
-        assert recon.shape == frames.shape and indices.shape == (4, 64)
+        assert recon.shape == frames.shape and indices.shape == (4, model.tokens_per_frame)
         print(f"[smoke] recon {recon.shape}, loss {loss.item():.4f} — OK")
         return
 
