@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SlowSim capture</title>
+  <!-- Same importmap as the demo so the vendored three resolves. -->
+  <script type="importmap">
+    { "imports": { "three": "../vendor/three.module.js" } }
+  </script>
+</head>
+<body>
+  <canvas id="view" width="512" height="512"></canvas>
+  <script type="module">
+    // Headless capture driver: Playwright calls window.captureDrive(seed, steps,
+    // size) and gets back the per-step actions + states + base64 RGBA frames.
+    // Runs the REAL WebGL renderer (needs a GPU/browser), unlike generate.mjs.
+    import { SlowSim } from "../core/index.js";
+    import { SimRenderer } from "../render/renderer.js";
+
+    window.captureDrive = async (seed, steps, size) => {
+      const canvas = document.getElementById("view");
+      const sim = new SlowSim({ seed });
+      const renderer = new SimRenderer(canvas, { dataSize: size });
+      renderer.setDisplaySize(512, 512);
+
+      const samples = [];
+      for (let i = 0; i < steps; i++) {
+        const action = sim.autopilotAction();
+        renderer.render(sim, 0);              // draw current state
+        const rgba = renderer.capture(size);  // Uint8Array size*size*4
+        samples.push({
+          action,
+          state: sim.state,
+          skeleton: sim.skeleton(),
+          labels: sim.frameLabels(),
+          // base64 so it survives the Playwright JS->Node boundary as JSON.
+          rgba: btoa(String.fromCharCode(...rgba)),
+        });
+        sim.step(action);
+      }
+      // Final state (no action) to close the last transition.
+      renderer.render(sim, 0);
+      samples.push({
+        action: null, state: sim.state, skeleton: sim.skeleton(),
+        labels: sim.frameLabels(), rgba: btoa(String.fromCharCode(...renderer.capture(size))),
+      });
+      return { seed, steps, dt: sim.dt, size, samples };
+    };
+
+    window.__ready = true;
+  </script>
+</body>
+</html>
