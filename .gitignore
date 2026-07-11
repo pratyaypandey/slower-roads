@@ -14,3 +14,4 @@ __pycache__/
 # Logs
 *.log
 npm-debug.log*
+eval/tokenizer_ab/checkpoints/
