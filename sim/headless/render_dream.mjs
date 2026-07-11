@@ -80,7 +80,9 @@ async function writeSideBySideGif(left, right, size, out) {
     console.error("gifenc not installed. On the GPU box:  cd sim && npm install gifenc");
     process.exit(1);
   }
-  const { GIFEncoder, quantize, applyPalette } = gifenc;
+  // gifenc is CJS; under ESM import() its exports may sit on .default. Accept both.
+  const g = gifenc.GIFEncoder ? gifenc : gifenc.default;
+  const { GIFEncoder, quantize, applyPalette } = g;
   const gap = 4;
   const w = size * 2 + gap, h = size;
   const enc = GIFEncoder();
