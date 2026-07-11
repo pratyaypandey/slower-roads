@@ -67,3 +67,39 @@ Findings:
   token costs some predictability. Both are ~2000× above chance, so both are very learnable;
   the world-model quality ceiling (sharper frames) likely outweighs the small predictability
   cost, but it's worth confirming once M2 trains on each.
+
+## Run 3 — driving recon L1 to ~0.001 (RTX 3090)
+
+Goal: get `v2_stack` recon L1 from ~0.0084 down to 0.001–0.002. The old 0.0084 came
+from a run cut short at 40 epochs (the pod kept billing after the laptop slept). Two
+new levers added to the trainer — **weight EMA** (0.999), **cosine LR + warmup** — plus
+an **in-RAM frame cache** (`--frame-cache`; ~12× faster training, so 600 epochs is cheap).
+Sweep isolates training vs capacity vs bits. Metric is **dataset-mean L1 over all 2501
+frames** (not the 6-frame eyeball number). See `compare_lowloss.png`.
+
+| variant | dataset-mean L1 | vs 0.0084 | codebook usage |
+|---|---|---|---|
+| `v2_stack` (old, 40 ep, no EMA) | ~0.0084 | — | 67% |
+| **L1** — +EMA +cosine +600 ep, hidden 64 | **0.00216** | 3.9× | 83.7% (10713/12800) |
+| **L2** — + capacity (hidden 128) | **0.00093** | **9×** | 80.7% (10327/12800) |
+| L3 — + bits (6-ch FSQ, vocab 102400) | 0.00104 | 8× | **25.6%** (26166/102400) |
+
+Findings:
+- **Undertraining, not the bottleneck, was most of the old loss.** Same capacity + EMA +
+  cosine + 600 epochs alone: 0.0084 → **0.00216**, already inside target.
+- **Capacity is the lever.** Doubling width (hidden 128) → **0.00093**, below 0.001. Winner.
+- **More latent bits do NOT help.** L3 matched L2 but used only 25.6% of its 102400 vocab —
+  the 256-token / 12800-vocab bottleneck was never the limit. A bloated vocab is strictly
+  worse for the AR head, so reject this route.
+- **Recommend: `fsq_v2`, hidden 128, EMA + cosine, ~600 epochs** — ~0.0009 L1 (9× sharper),
+  same 256-token / 12800-vocab contract M2 expects. Lean checkpoint:
+  `checkpoints_lowloss/fsq_v2_h128_best.pt` (gitignored).
+- Caveat: measured on seed1 (the training drive). Confirm on a held-out seed — cheap.
+
+## Regenerate (run 3)
+```bash
+python -m model.train_tokenizer --data data/seed1 --arch fsq_v2 --hidden 128 \
+  --loss-stack --lpips-weight 0 --grad-weight 0.5 --frame-cache --cosine --ema 0.999 \
+  --epochs 600 --batch-size 64 --out ck_L2
+python -m eval.eval_tokenizer --data data/seed1 --ckpt ck_L2/tokenizer.pt   # dataset mean L1
+```

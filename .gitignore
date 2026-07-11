@@ -15,3 +15,5 @@ __pycache__/
 *.log
 npm-debug.log*
 eval/tokenizer_ab/checkpoints/
+eval/tokenizer_ab/checkpoints_lowloss/
+*.pt
