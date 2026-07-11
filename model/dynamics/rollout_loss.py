@@ -38,7 +38,7 @@ def default_pixel_loss(frame_hat, frame_gt):
 
 def rollout_loss(model, decoder, z_ctx, action_ids, target_tokens, gt_frames, H,
                  ce_weight=1.0, pixel_weight=1.0, pixel_loss=default_pixel_loss,
-                 feed_back_predictions=True):
+                 teacher_forcing=0.0):
     """Roll H steps, accumulating token CE + decoded-pixel loss (§5).
 
     model:         ARDynamics.
@@ -48,9 +48,10 @@ def rollout_loss(model, decoder, z_ctx, action_ids, target_tokens, gt_frames, H,
     target_tokens: (B, H, TOKENS_PER_FRAME) ground-truth visual ids per step.
     gt_frames:     (B, H, 3, 64, 64) ground-truth frames per step.
     H:             rollout horizon.
-    feed_back_predictions: if True, the next step's context uses the model's own
-        (argmax) visual tokens — training on its own rollout (anti-drift, §0).
-        If False, uses ground-truth tokens (teacher forcing).
+    teacher_forcing: prob in [0,1] that a step feeds GROUND-TRUTH tokens back into
+        the context instead of the model's own prediction (scheduled sampling).
+        0 = pure free-running rollout (the anti-drift default); 1 = full teacher
+        forcing. Decided per-step so the trainer can anneal it across training.
 
     Returns (total_loss, {"ce": ce_total, "pixel": pixel_total}).
     """
@@ -73,8 +74,12 @@ def rollout_loss(model, decoder, z_ctx, action_ids, target_tokens, gt_frames, H,
         frame_hat = decoder(pred_tokens)
         pixel_total = pixel_total + pixel_loss(frame_hat, gt_frames[:, k])
 
-        # Autoregress: append this frame (action + visual) to the context.
-        step_tokens = pred_tokens if feed_back_predictions else target_k
+        # Autoregress: feed back ground-truth tokens with prob teacher_forcing,
+        # else the model's own prediction (scheduled sampling; anneal in trainer).
+        if teacher_forcing > 0.0 and torch.rand(()) < teacher_forcing:
+            step_tokens = target_k
+        else:
+            step_tokens = pred_tokens
         prefix = torch.cat([prefix, u_t, step_tokens], dim=1)
 
     total = ce_weight * ce_total + pixel_weight * pixel_total

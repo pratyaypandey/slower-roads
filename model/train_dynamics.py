@@ -82,15 +82,23 @@ def train(args):
 
     ckpt = os.path.join(args.out, "dynamics.pt")
     os.makedirs(args.out, exist_ok=True)
+    # Scheduled sampling: anneal teacher forcing tf_start -> 0 across training, so
+    # early epochs are grounded (stable) and later ones free-run (learn to
+    # self-correct). tf_start=0 (default) is pure free-running throughout.
+    import inspect
+    accepts_tf = "teacher_forcing" in inspect.signature(model.prepare_batch).parameters
+
     for epoch in range(start_epoch, args.epochs):
+        frac = epoch / max(1, args.epochs - 1)
+        tf = args.tf_start * (1 - frac)
         # Accumulate whatever loss parts this arch reports (AR: ce/pixel; flow
         # bridge: flow/pixel) so the trainer doesn't assume a fixed set.
         run = {}
         for item in loader:
-            batch = model.prepare_batch(
-                tokenizer, item, args.horizon, device,
-                ce_weight=args.ce_weight, pixel_weight=args.pixel_weight,
-            )
+            kw = dict(ce_weight=args.ce_weight, pixel_weight=args.pixel_weight)
+            if accepts_tf:
+                kw["teacher_forcing"] = tf
+            batch = model.prepare_batch(tokenizer, item, args.horizon, device, **kw)
             total, parts = model.loss(batch, tokenizer.decode_indices)
             opt.zero_grad()
             total.backward()
@@ -99,7 +107,8 @@ def train(args):
                 run[k] = run.get(k, 0.0) + v.item()
         n = max(1, len(loader))
         parts_str = "  ".join(f"{k} {run[k] / n:.4f}" for k in run)
-        print(f"epoch {epoch + 1}/{args.epochs}  {parts_str}")
+        tf_str = f"  tf {tf:.2f}" if accepts_tf and args.tf_start > 0 else ""
+        print(f"epoch {epoch + 1}/{args.epochs}  {parts_str}{tf_str}")
         # Checkpoint every epoch so long runs survive interruption + resume.
         # builder + cfg let registry.load_dynamics rebuild any arch/size exactly
         # (fixes the old bug where eval assumed default d_model/n_heads/n_layers).
@@ -125,6 +134,8 @@ def main():
     p.add_argument("--n-layers", type=int, default=4, dest="n_layers")
     p.add_argument("--ce-weight", type=float, default=1.0, dest="ce_weight")
     p.add_argument("--pixel-weight", type=float, default=1.0, dest="pixel_weight")
+    p.add_argument("--tf-start", type=float, default=0.0, dest="tf_start",
+                   help="initial teacher-forcing prob, annealed to 0 (0 = pure free-run)")
     p.add_argument("--resume", default=None, help="checkpoint to continue training from")
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--smoke", action="store_true", help="tiny random-tensor pass, no data")

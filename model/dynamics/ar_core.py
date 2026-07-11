@@ -222,7 +222,8 @@ class ARDynamics(nn.Module):
 
     # --- Dynamics protocol (model/interfaces.py) ---
     @torch.no_grad()
-    def prepare_batch(self, tokenizer, item, horizon, device, ce_weight=1.0, pixel_weight=1.0):
+    def prepare_batch(self, tokenizer, item, horizon, device,
+                      ce_weight=1.0, pixel_weight=1.0, teacher_forcing=0.0):
         """Encode a dataset item into this core's token-sequence rollout inputs."""
         from model.dynamics.sequence import build_context
 
@@ -243,6 +244,7 @@ class ARDynamics(nn.Module):
             "horizon": horizon,
             "ce_weight": ce_weight,
             "pixel_weight": pixel_weight,
+            "teacher_forcing": teacher_forcing,
         }
 
     def loss(self, batch, decoder):
@@ -256,6 +258,7 @@ class ARDynamics(nn.Module):
             batch["gt_frames"], batch["horizon"],
             ce_weight=batch.get("ce_weight", 1.0),
             pixel_weight=batch.get("pixel_weight", 1.0),
+            teacher_forcing=batch.get("teacher_forcing", 0.0),
         )
 
 
