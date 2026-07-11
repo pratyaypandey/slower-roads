@@ -118,8 +118,10 @@ def run_torch():
     codes = model.fsq.indices_to_codes(indices)
     assert torch.equal(model.fsq.codes_to_indices(codes), indices)
 
-    # STE: quantized output carries a gradient back to the continuous latent
-    z = z_cont.clone().requires_grad_(True)
+    # STE: quantized output carries a gradient back to the continuous latent.
+    # z must be a leaf tensor for .grad to populate, so detach before requiring
+    # grad (z_cont already has a grad_fn from the encoder).
+    z = z_cont.detach().clone().requires_grad_(True)
     model.fsq.quantize(z).sum().backward()
     assert z.grad is not None and torch.isfinite(z.grad).all()
 
