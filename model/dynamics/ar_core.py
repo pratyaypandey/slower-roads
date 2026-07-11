@@ -118,7 +118,7 @@ class ARDynamics(nn.Module):
     """Small causal transformer over the interleaved action/visual vocab."""
 
     def __init__(self, d_model=256, n_heads=4, n_layers=4, d_ff=None,
-                 max_seq_len=8192, vocab_size=VOCAB_SIZE):
+                 max_seq_len=32768, vocab_size=VOCAB_SIZE):
         super().__init__()
         d_ff = d_ff or 4 * d_model
         self.d_model = d_model
