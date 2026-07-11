@@ -23,10 +23,13 @@ GRAD_WEIGHT="${GRAD_WEIGHT:-0.5}"
 # Dynamics (shared size across experiments so the comparison is apples-to-apples):
 DYN_DMODEL="${DYN_DMODEL:-384}"
 DYN_LAYERS="${DYN_LAYERS:-6}"
-DYN_EPOCHS="${DYN_EPOCHS:-60}"
+DYN_EPOCHS="${DYN_EPOCHS:-25}"    # baseline showed CE converges by ~20
 DREAM_STEPS="${DREAM_STEPS:-60}"
 # Which experiments to run (space-separated). See the case block below.
 EXPERIMENTS="${EXPERIMENTS:-baseline tf_sched flow_bridge}"
+# SKIP_SHARED=1 reuses the existing data/ + checkpoints/tokenizer.pt (skips the
+# ~50-min data-gen + tokenizer stages) and jumps straight to the dynamics sweep.
+SKIP_SHARED="${SKIP_SHARED:-0}"
 
 export CUDA_VISIBLE_DEVICES="$GPU"
 mkdir -p logs
@@ -40,10 +43,16 @@ python -c "import torch,numpy; assert torch.cuda.is_available(); print('  torch'
 ( cd sim && node -e "require('playwright'); require('gifenc')" ) 2>/dev/null \
   || { echo "ENV: cd sim && npm install && npx playwright install chromium."; exit 1; }
 
-# --- shared stage 1: dataset -----------------------------------------------
-say "data: $STEPS frames @ ${SIZE}px -> $DATA"
-node sim/headless/generate_pixels.mjs --seed 1 --steps "$STEPS" --size "$SIZE" 2>&1 | tee logs/gen.log
-python3 - "$DATA" <<'PY'
+# --- shared stages: dataset + tokenizer (trained once, reused by every experiment).
+# SKIP_SHARED=1 reuses what's already on disk and jumps to the dynamics sweep.
+if [ "$SKIP_SHARED" = "1" ]; then
+  say "SKIP_SHARED=1 — reusing existing $DATA + checkpoints/tokenizer.pt"
+  [ -f "$DATA/manifest.json" ] || { echo "  no $DATA/manifest.json — can't skip data gen"; exit 1; }
+  [ -f checkpoints/tokenizer.pt ] || { echo "  no checkpoints/tokenizer.pt — can't skip tokenizer"; exit 1; }
+else
+  say "data: $STEPS frames @ ${SIZE}px -> $DATA"
+  node sim/headless/generate_pixels.mjs --seed 1 --steps "$STEPS" --size "$SIZE" 2>&1 | tee logs/gen.log
+  python3 - "$DATA" <<'PY'
 import numpy as np, json, sys
 d=sys.argv[1]; m=json.load(open(f"{d}/manifest.json")); n=len(m["samples"])
 a=np.load(f"{d}/"+m["samples"][n//10]["frame"]); b=np.load(f"{d}/"+m["samples"][n//2]["frame"])
@@ -51,11 +60,11 @@ assert a.std()>0.05 and np.abs(a-b).mean()>0.02, "gray/frozen frames — abortin
 print(f"  frames OK (std {a.std():.3f}, diff {np.abs(a-b).mean():.3f})")
 PY
 
-# --- shared stage 2: tokenizer (train once, every experiment reuses it) ----
-say "tokenizer: hidden=$TOK_HIDDEN epochs=$TOK_EPOCHS grad=$GRAD_WEIGHT"
-python -m model.train_tokenizer --data "$DATA" \
-    --hidden "$TOK_HIDDEN" --grad-weight "$GRAD_WEIGHT" --epochs "$TOK_EPOCHS" \
-    2>&1 | tee logs/tokenizer.log
+  say "tokenizer: hidden=$TOK_HIDDEN epochs=$TOK_EPOCHS grad=$GRAD_WEIGHT"
+  python -m model.train_tokenizer --data "$DATA" \
+      --hidden "$TOK_HIDDEN" --grad-weight "$GRAD_WEIGHT" --epochs "$TOK_EPOCHS" \
+      2>&1 | tee logs/tokenizer.log
+fi
 python -m eval.eval_tokenizer --data "$DATA" --ckpt checkpoints/tokenizer.pt \
     2>&1 | tee logs/tokenizer_eval.log
 say "-> eval/plots/tokenizer_recon.png"
