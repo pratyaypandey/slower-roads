@@ -31,6 +31,13 @@ const manifest = {
   representation: "state",
   params: sim.params,
   dt: DT,
+  // Road centerline + width so a renderer (e.g. the numpy software renderer)
+  // can draw the scene from state alone, no JS/gl needed.
+  road: {
+    width: sim.road.width,
+    points: sim.road.points.map((p) => [p.x, p.z]),
+    headings: Array.from(sim.road.headings),
+  },
   // Same tuple structure as the pixel manifest, minus frame paths: a training
   // tuple is (samples[i].state, samples[i].action, samples[i+1].state).
   samples: [{ action: null, state: snap(sim.state) }],
