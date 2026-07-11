@@ -6,24 +6,67 @@ numpy. See `docs/architecture.md` for the design contract.
 
 ## The pipeline at a glance
 
+Two networks, trained in sequence, that behave differently at train vs.
+inference time — the two diagrams below make that split explicit.
+
+### Train time
+
+The tokenizer is frozen. Every real frame in a window is encoded to tokens once;
+the dynamics core predicts each next-frame's tokens, and the loss compares them
+to the *real* next frame — in token space (cross-entropy) and in pixel space
+(decode the prediction, compare to the true frame). Ground-truth frames are
+always available, so each step is scored against truth (the rollout can feed
+predictions or truth back — see `--tf-start` in train_dynamics).
+
 ```
-                         ACTION a_t (throttle/brake/steer -> 1 of 9 tokens)
-                             │
-                             ▼
-  frame x_t ──▶ ┌───────────────────────┐   z_t (8x8=64 FSQ tokens)
-  (3,64,64)     │  FSQ tokenizer         │──────────────┐
-                │  (encoder + FSQ + dec) │              │
-                └───────────────────────┘              ▼
-                        ▲                     ┌───────────────────────┐
-                        │ decode              │  AR dynamics core      │
-                        │                     │  (causal transformer   │
-                        │                     │   over [a_t, z_t...])   │
-                  x̂_{t+1} ◀── decode ẑ_{t+1} ─┤  predicts next-frame    │
-                  (dreamed frame)             │  tokens ẑ_{t+1}         │
-                                              └───────────────────────┘
-                                                        │ feed ẑ back
-                                                        └──▶ (autoregressive:
-                                                             dream t+2, t+3, ...)
+  real frames  x_0 ... x_T (a window of ground truth)
+       │
+       ▼  (FSQ encoder + quantize, FROZEN)
+  tokens       z_0 ... z_T          actions a_0 ... a_T (each -> 1 of 9 tokens)
+       │                                   │
+       └──────────────┬────────────────────┘
+                      ▼
+        interleave [a_0,z_0(64), a_1,z_1(64), ...]
+                      │
+                      ▼
+        ┌─────────────────────────────┐
+        │  AR dynamics (causal xformer)│  predicts ẑ_{t+1} for every t
+        └─────────────────────────────┘
+                      │
+          ┌───────────┴────────────┐
+          ▼                         ▼
+   token CE loss             decode ẑ_{t+1} (FROZEN decoder) -> x̂_{t+1}
+   ẑ_{t+1} vs z_{t+1}                        │
+          │                                  ▼
+          │                          pixel loss  x̂_{t+1} vs REAL x_{t+1}
+          └──────────────┬───────────────────┘
+                         ▼
+              total loss = CE + pixel   ── backprop ──▶ dynamics weights only
+```
+
+### Inference time (the dream)
+
+No ground-truth future exists — the model **generates it**. A few real frames
+seed the context; from then on the dynamics core samples the next frame's tokens
+autoregressively (KV-cached), the frozen decoder turns them into pixels, and
+those predicted tokens are appended to the context to drive the next step. The
+model drives on its own imagination. This free-running feedback is where drift
+appears — small errors compound because nothing pulls the state back to truth.
+
+```
+  seed: real frames x_0..x_{T-1} ──▶ encode ──▶ context tokens [a,z,a,z,...]
+                                                        │
+        ┌───────────────────────────────────────────────┘
+        ▼
+  ┌─────────────────────────────┐   ẑ_{t+1}      ┌──────────────────┐  x̂_{t+1}
+  │  AR dynamics (KV-cached)     │──64 tokens────▶│ FSQ decoder      │────────▶ screen
+  │  + action a_t               │                │ (FROZEN)         │
+  └─────────────────────────────┘                └──────────────────┘
+        ▲                                                │
+        │            append (a_t, ẑ_{t+1}) to context    │
+        └────────────────────────────────────────────────┘
+                     autoregressive: dream t+1, t+2, t+3, ...
+                     (no ground truth — errors compound = drift)
 ```
 
 Two networks, trained in sequence:
