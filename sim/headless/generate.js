@@ -7,17 +7,21 @@
 // Run: npm run gen -- [--seed N] [--steps N] [--res WxH] [--out DIR]
 
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { PNG } from "pngjs";
 import { createHeadlessRenderer } from "./renderer.js";
 import { createSim } from "../src/sim.js";
 import { makeActionSequence } from "./actions.js";
 
+// Anchor default output to <repo>/data regardless of the caller's cwd.
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+
 const args = parseArgs(process.argv.slice(2));
 const SEED = args.seed ?? 1;
 const STEPS = args.steps ?? 300;
 const [W, H] = (args.res ?? "128x128").split("x").map(Number);
-const OUT = args.out ?? join("..", "data", `seed${SEED}`);
+const OUT = args.out ?? join(REPO_ROOT, "data", `seed${SEED}`);
 
 const { renderer, readPixels } = createHeadlessRenderer(W, H);
 const THREE = (await import("three")).default ?? (await import("three"));

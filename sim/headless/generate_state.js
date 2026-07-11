@@ -6,14 +6,19 @@
 // Run: node headless/generate_state.js [--seed N] [--steps N] [--out DIR]
 
 import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createSim, DT } from "../src/sim.js";
 import { makeActionSequence } from "./actions.js";
+
+// Anchor the default output to <repo>/data regardless of the caller's cwd
+// (this file is sim/headless/, so the repo root is two levels up).
+const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 const args = parseArgs(process.argv.slice(2));
 const SEED = args.seed ?? 1;
 const STEPS = args.steps ?? 300;
-const OUT = args.out ?? join("..", "data", `seed${SEED}_state`);
+const OUT = args.out ?? join(REPO_ROOT, "data", `seed${SEED}_state`);
 
 const sim = createSim(null, { seed: SEED });
 const actions = makeActionSequence(STEPS);
