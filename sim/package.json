@@ -7,14 +7,17 @@
   "scripts": {
     "gen": "node headless/generate.js",
     "prove": "node headless/prove_determinism.js",
-    "dev": "vite browser"
+    "dev": "vite"
   },
   "dependencies": {
     "three": "^0.169.0"
   },
   "devDependencies": {
-    "gl": "^8.1.6",
-    "pngjs": "^7.0.0",
     "vite": "^5.4.0"
+  },
+  "//optionalDependencies": "gl is a native module; a failed build must not roll back three + vite, so it's optional. Only the headless data-gen path (npm run gen) needs it.",
+  "optionalDependencies": {
+    "gl": "^8.1.6",
+    "pngjs": "^7.0.0"
   }
 }

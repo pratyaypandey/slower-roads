@@ -28,11 +28,17 @@ browser/     index.html + main.js — live WASD driving via vite
 ## Run
 
 First, install deps (needs a normal network — the npm registry must be
-reachable; `gl` is a native module and compiles on install):
+reachable):
 
 ```
 cd sim && npm install
 ```
+
+`gl` and `pngjs` are **optional** deps (native `gl` compiles on install and can
+fail on new Node versions). A failed `gl` build no longer rolls back `three` or
+`vite` — the browser and determinism paths install and run regardless; only
+`npm run gen` needs `gl`. If install still leaves `three` missing, force it past
+the optional build with `npm install --no-optional`, then run the browser.
 
 **Determinism proof (no deps needed — pure Node):**
 ```
