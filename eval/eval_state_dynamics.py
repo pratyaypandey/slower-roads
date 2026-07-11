@@ -36,10 +36,12 @@ def load_drive(data_dir):
     states = np.array(
         [[s["state"]["car"][k] for k in STATE_KEYS] for s in samples], dtype=np.float32
     )
-    # samples[0].action is null; action i drives state i-1 -> state i.
+    # generate.mjs: samples[i].action drives state[i] -> state[i+1]; the trailing
+    # sample has action=null to close the last transition. So actions come from
+    # all but that last sample, giving len(actions) == len(states) - 1.
     actions = np.array(
         [tokenize_action(s["action"]["steer"], s["action"]["throttle"])
-         for s in samples[1:]],
+         for s in samples[:-1]],
         dtype=np.int64,
     )
     return states, actions
