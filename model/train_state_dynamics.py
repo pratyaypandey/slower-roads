@@ -113,15 +113,15 @@ def train(args):
 
 
 def dataset_state_stats(dataset, device):
-    # Mean/std per state dim over every state in the dataset.
-    all_states = []
+    # Mean/std per state dim over every state in the dataset. Chunks may be torch
+    # tensors (torch present) or numpy arrays; as_tensor handles both, and cat
+    # stacks the (T,4)/(H,4) chunks into one (N,4) table.
+    chunks = []
     for i in range(len(dataset)):
         item = dataset[i]
-        all_states.append(item["context_state"])
-        all_states.append(item["target_state"])
-    flat = torch.tensor(
-        [row for chunk in all_states for row in chunk], dtype=torch.float32, device=device
-    )
+        chunks.append(torch.as_tensor(item["context_state"], dtype=torch.float32))
+        chunks.append(torch.as_tensor(item["target_state"], dtype=torch.float32))
+    flat = torch.cat(chunks, dim=0).to(device)
     mean = flat.mean(dim=0)
     std = flat.std(dim=0).clamp_min(1e-6)  # guard dims with no variance
     return mean, std
