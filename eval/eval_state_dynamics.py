@@ -86,6 +86,10 @@ def main():
     p.add_argument("--data", default="data/seed1_state")
     p.add_argument("--ckpt", default="checkpoints/state_dynamics.pt")
     p.add_argument("--steps", type=int, default=200, help="rollout length to evaluate")
+    p.add_argument("--start", type=int, default=100,
+                   help="index into the drive to start the rollout from; default 100 "
+                        "skips the standing-start acceleration ramp so the eval tests "
+                        "steady-state driving, not just the hardest first seconds")
     p.add_argument("--out", default="eval/plots")
     args = p.parse_args()
 
@@ -96,17 +100,25 @@ def main():
     mean, std = ckpt["state_mean"], ckpt["state_std"]
 
     states, actions = load_drive(args.data)
-    steps = min(args.steps, len(actions))
-    pred = free_run(model, mean, std, states[0], actions, steps)
-    true = states[1 : steps + 1]
+    start = min(args.start, len(actions) - 2)
+    steps = min(args.steps, len(actions) - start)
+    # Roll from `start` using the true state there as the seed, then free-run.
+    pred = free_run(model, mean, std, states[start], actions[start:start + steps], steps)
+    true = states[start + 1 : start + steps + 1]
 
     # Per-step drift over the whole state vector (standardized so dims compare).
     pred_z = (pred - mean.numpy()) / std.numpy()
     true_z = (true - mean.numpy()) / std.numpy()
     drift = latent_drift(pred_z, true_z)
 
-    print(f"\nfree-running rollout: {steps} steps from a single start state")
-    print(f"  final position error: {np.linalg.norm(pred[-1, :2] - true[-1, :2]):.1f} m")
+    # Report position error relative to distance actually driven — an absolute
+    # metre figure is meaningless without knowing how far the car went.
+    final_err = np.linalg.norm(pred[-1, :2] - true[-1, :2])
+    dist = np.sum(np.linalg.norm(np.diff(true[:, :2], axis=0), axis=1))
+    print(f"\nfree-running rollout: {steps} steps from drive index {start} "
+          f"(speed there = {states[start, 3]:.1f} m/s)")
+    print(f"  final position error: {final_err:.1f} m  over {dist:.0f} m driven "
+          f"= {100 * final_err / max(1, dist):.1f}% of path length")
     print(f"  drift (standardized L2)  step 1: {drift[0]:.3f}   "
           f"step {steps//2}: {drift[steps//2]:.3f}   step {steps}: {drift[-1]:.3f}")
     per_dim = np.abs(pred - true).mean(axis=0)
@@ -128,7 +140,10 @@ def main():
         ax[1].plot(drift, lw=2)
         ax[1].set_title("per-step drift vs oracle (standardized L2)")
         ax[1].set_xlabel("rollout step"); ax[1].set_ylabel("drift")
-        path = os.path.join(args.out, "state_rollout.png")
+        # Tag the plot by the checkpoint's parent dir so A/B/C runs don't
+        # overwrite each other (checkpoints/B/state_dynamics.pt -> rollout_B.png).
+        tag = os.path.basename(os.path.dirname(os.path.abspath(args.ckpt))) or "run"
+        path = os.path.join(args.out, f"rollout_{tag}.png")
         fig.tight_layout(); fig.savefig(path, dpi=110)
         print(f"\nsaved plot: {path}")
     except ImportError:
