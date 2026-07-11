@@ -21,6 +21,7 @@ from model.tokenizer.fsq_autoencoder import (
     reconstruction_loss,
     count_parameters,
 )
+from model.tokenizer.losses import tokenizer_loss, make_lpips
 from model.registry import build_tokenizer
 from model.data.dataset import SimSequenceDataset
 
@@ -37,13 +38,28 @@ def train(args):
     # Build via the registry so --arch selects the tokenizer; the cfg is saved
     # with the checkpoint so it reloads exactly (any size/variant).
     tok_cfg = {"hidden": args.hidden}
+    if args.levels:
+        tok_cfg["levels"] = tuple(int(x) for x in args.levels.split(","))
     model = build_tokenizer(args.arch, **tok_cfg).to(device)
-    print(f"tokenizer '{args.arch}' parameters: {count_parameters(model) / 1e6:.2f}M")
+    print(f"tokenizer '{args.arch}' parameters: {count_parameters(model) / 1e6:.2f}M"
+          f"  codebook={model.codebook_size}  loss={'stack' if args.loss_stack else args.loss}")
+
+    # The research loss stack (saliency-L1 + edge + FFL + optional LPIPS) vs the
+    # baseline pixel(+edge) loss, selected by --loss-stack.
+    lpips_fn = make_lpips(device) if (args.loss_stack and args.lpips_weight > 0) else None
+
+    def loss_fn(recon, frames):
+        if args.loss_stack:
+            total, _ = tokenizer_loss(recon, frames, saliency_alpha=args.saliency_alpha,
+                                      w_edge=args.grad_weight, w_ffl=args.ffl_weight,
+                                      w_lpips=args.lpips_weight, lpips_fn=lpips_fn)
+            return total
+        return reconstruction_loss(recon, frames, kind=args.loss, grad_weight=args.grad_weight)
 
     if args.smoke:
         frames = torch.rand(4, 3, 64, 64, device=device)
         recon, indices, _ = model(frames)
-        loss = reconstruction_loss(recon, frames, kind=args.loss, grad_weight=args.grad_weight)
+        loss = loss_fn(recon, frames)
         loss.backward()
         assert recon.shape == frames.shape and indices.shape == (4, model.tokens_per_frame)
         print(f"[smoke] recon {recon.shape}, loss {loss.item():.4f} — OK")
@@ -76,13 +92,14 @@ def train(args):
         for item in loader:
             frames = frames_from_batch(item).to(device)
             recon, _, _ = model(frames)
-            loss = reconstruction_loss(recon, frames, kind=args.loss, grad_weight=args.grad_weight)
+            loss = loss_fn(recon, frames)
             opt.zero_grad()
             loss.backward()
             opt.step()
             running += loss.item()
         avg = running / max(1, len(loader))
-        print(f"epoch {epoch + 1}/{args.epochs}  recon_{args.loss} {avg:.4f}")
+        label = "stack" if args.loss_stack else args.loss
+        print(f"epoch {epoch + 1}/{args.epochs}  loss_{label} {avg:.4f}")
         # Checkpoint every epoch so a long run is resumable if interrupted.
         # builder + cfg let registry.load_tokenizer rebuild any variant exactly.
         torch.save({"builder": args.arch, "cfg": tok_cfg, "hidden": args.hidden,
@@ -103,6 +120,12 @@ def main():
     p.add_argument("--loss", choices=["l1", "mse"], default="l1")
     p.add_argument("--grad-weight", type=float, default=0.0, dest="grad_weight",
                    help="weight on the gradient/edge loss term; >0 preserves small objects (the car)")
+    p.add_argument("--loss-stack", action="store_true", dest="loss_stack",
+                   help="use the research loss stack: saliency-weighted L1 + edge + FFL + LPIPS")
+    p.add_argument("--ffl-weight", type=float, default=0.1, dest="ffl_weight")
+    p.add_argument("--lpips-weight", type=float, default=0.1, dest="lpips_weight")
+    p.add_argument("--saliency-alpha", type=float, default=2.0, dest="saliency_alpha")
+    p.add_argument("--levels", default=None, help="override FSQ levels, e.g. '8,5,5,5' (vocab 1024)")
     p.add_argument("--context", type=int, default=4)
     p.add_argument("--horizon", type=int, default=6)
     p.add_argument("--resume", default=None, help="checkpoint to continue training from")
