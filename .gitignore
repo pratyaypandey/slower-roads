@@ -14,3 +14,7 @@ data/
 # Logs
 *.log
 npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
