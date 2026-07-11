@@ -70,12 +70,23 @@ class FlowBridge(nn.Module):
         self.velocity = VelocityNet(self.fsq.num_channels, hidden=hidden)
         self.steps = steps
 
+    def _snap_codes(self, z):
+        """Nearest valid integer grid code for a normalized-code tensor. Rounds
+        and clamps directly — does NOT go through fsq.quantize, whose tanh bound
+        is for raw encoder outputs and would distort already-normalized codes.
+
+        The valid per-channel code range is [-half, L-1-half] (asymmetric for even
+        L, e.g. L=8 -> [-4, 3]); clamping to that avoids index overflow in
+        codes_to_indices."""
+        hw = self.fsq.half_width.to(z.dtype)
+        levels = self.fsq.levels.to(z.dtype)
+        codes = torch.round(z * hw)
+        return torch.clamp(codes, -hw, levels - 1 - hw)
+
     def snap_to_grid(self, z):
         """Nearest FSQ grid point of a normalized-code tensor, returned in the
-        same normalized space. Uses the (non-differentiable) quantizer, so callers
-        detach as needed."""
-        codes = self.fsq.quantize(z * self.fsq.half_width.to(z.dtype))
-        return self.fsq.normalize(codes)
+        same normalized space (round-and-clamp, non-differentiable)."""
+        return self.fsq.normalize(self._snap_codes(z))
 
     def flow_step(self, z_cur, s, ds, action_id):
         """One Euler step of the flow, plus the endpoint snap (notes' core loop).
@@ -101,6 +112,41 @@ class FlowBridge(nn.Module):
         return running  # normalized-code estimate of z_{t+1}
 
     # --- Dynamics protocol (model/interfaces.py) ---
+    @torch.no_grad()
+    def encode_normalized(self, tokenizer, frames):
+        """Frames (N, 3, H, W) -> normalized FSQ codes (N, tok, C) in ~[-1,1],
+        the continuous space the flow transports in. Uses the frozen tokenizer's
+        encoder + its own grid, so it's independent of the tokenizer's quantizer
+        object identity."""
+        z_cont = tokenizer.encode(frames)
+        codes = self.fsq.quantize(z_cont)
+        return self.fsq.normalize(codes)
+
+    @torch.no_grad()
+    def prepare_batch(self, tokenizer, item, horizon, device, ce_weight=1.0, pixel_weight=0.0):
+        """Encode consecutive frames into (z_cur, z_next) transition pairs. The
+        bridge learns one-step transitions, so we pair the last context frame and
+        each target frame; batching all H pairs trains the whole rollout at once."""
+        ctx_frames = item["context_frames"].float().to(device)      # (B,T,3,H,W)
+        tgt_frames = item["target_frames"].float().to(device)       # (B,H,3,H,W)
+        tgt_actions = item["target_actions"].to(device)             # (B,H)
+        b = ctx_frames.shape[0]
+
+        # Frame sequence [last context frame, all target frames]; transitions are
+        # consecutive pairs. Encode flattened, then reshape back.
+        seq = torch.cat([ctx_frames[:, -1:], tgt_frames], dim=1)    # (B,H+1,3,H,W)
+        flat = seq.reshape(b * (horizon + 1), *seq.shape[2:])
+        z = self.encode_normalized(tokenizer, flat).reshape(b, horizon + 1, -1, self.fsq.num_channels)
+        z_cur = z[:, :-1].reshape(b * horizon, *z.shape[2:])        # (B*H, tok, C)
+        z_next = z[:, 1:].reshape(b * horizon, *z.shape[2:])
+        return {
+            "z_cur": z_cur,
+            "z_next": z_next,
+            "action_ids": tgt_actions.reshape(b * horizon),
+            "gt_next_frame": tgt_frames.reshape(b * horizon, *tgt_frames.shape[2:]),
+            "pixel_weight": pixel_weight,
+        }
+
     def loss(self, batch, decoder):
         """Flow-matching loss. batch provides continuous normalized codes for the
         current and next frame (z_cur, z_next, each (B, tok, C)) and the action
@@ -130,9 +176,9 @@ class FlowBridge(nn.Module):
         return total, parts
 
     def codes_to_indices(self, z_norm):
-        """Normalized codes -> visual token ids (B, tok)."""
-        codes = self.fsq.quantize(z_norm * self.fsq.half_width.to(z_norm.dtype))
-        return self.fsq.codes_to_indices(codes)
+        """Normalized codes -> visual token ids (B, tok). Snap (round+clamp) to a
+        valid grid code, then reuse the tokenizer's mixed-radix index mapping."""
+        return self.fsq.codes_to_indices(self._snap_codes(z_norm))
 
     @torch.no_grad()
     def generate_frame(self, z_t, action_id):

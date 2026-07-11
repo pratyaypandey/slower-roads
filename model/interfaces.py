@@ -32,9 +32,15 @@ class Tokenizer(Protocol):
 class Dynamics(Protocol):
     """Predicts the next frame's visual tokens from past frames + actions."""
 
-    # Training: one multi-step rollout loss over a batch. decoder maps predicted
-    # visual tokens (B, tok) -> frame (B, 3, H, W) so pixel-space terms can be
-    # computed without the dynamics core importing a tokenizer.
+    # Turn a raw dataset item (frames + action ids) into the batch THIS core's
+    # loss expects, using the frozen tokenizer to encode. Each arch owns its own
+    # representation (AR: discrete token sequences; flow: continuous latents), so
+    # the trainer stays arch-agnostic — it just calls prepare_batch then loss.
+    def prepare_batch(self, tokenizer, item, horizon, device, **weights): ...
+
+    # Training: one loss over a prepared batch. decoder maps predicted visual
+    # tokens (B, tok) -> frame (B, 3, H, W) so pixel-space terms can be computed
+    # without the dynamics core importing a tokenizer.
     def loss(self, batch, decoder): ...      # -> (total_loss, parts_dict)
 
     # Inference: generate one frame's visual tokens given the interleaved context

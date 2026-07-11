@@ -1,12 +1,15 @@
-"""M2: train the AR dynamics core on latent tokens from a frozen tokenizer.
+"""M2: train a dynamics core on latents from a frozen tokenizer.
 
-Encodes each frame to visual tokens with the M1 tokenizer (frozen), builds the
-interleaved [action, visual...] context per §4, and optimizes the multi-step
-rollout loss (§5) — token CE plus decoded-pixel loss over an H-step rollout.
-The tokenizer's decode_indices is passed to rollout_loss as the decoder.
+Arch-agnostic: the selected core (--arch, default ar_transformer) owns how it
+turns a dataset item into its training batch (`prepare_batch`) and its loss
+(`loss`), so this trainer just calls those two protocol methods. The AR core uses
+interleaved [action, visual] token sequences with a multi-step rollout loss (§5,
+token CE + decoded pixel); the flow bridge uses continuous FSQ-code transitions.
+The frozen tokenizer's decode_indices is passed as the decoder for pixel terms.
 
     python -m model.train_tokenizer --data data/seed1 --epochs 20
     python -m model.train_dynamics --data data/seed1 --tokenizer checkpoints/tokenizer.pt
+    python -m model.train_dynamics --arch flow_bridge --data data/seed1 --tokenizer checkpoints/tokenizer.pt
 
 CPU-shape-testable with --smoke (random tensors, no data or checkpoint needed).
 """
@@ -18,14 +21,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from model.tokenizer.fsq_autoencoder import FSQAutoencoder
-from model.dynamics.ar_core import ARDynamics
 from model.registry import build_dynamics, load_tokenizer
-from model.dynamics.rollout_loss import rollout_loss
-from model.dynamics.config import (
-    NUM_VISUAL_TOKENS,
-    TOKENS_PER_FRAME,
-)
-from model.dynamics.sequence import build_context
 from model.data.dataset import SimSequenceDataset
 
 
@@ -39,15 +35,6 @@ def load_frozen_tokenizer(path, device):
     return tok
 
 
-@torch.no_grad()
-def encode_frames(tokenizer, frames):
-    # frames (B, N, 3, 64, 64) -> visual token ids (B, N, TOKENS_PER_FRAME).
-    b, n = frames.shape[:2]
-    flat = frames.reshape(b * n, *frames.shape[2:])
-    _, indices, _ = tokenizer(flat)
-    return indices.reshape(b, n, TOKENS_PER_FRAME)
-
-
 def train(args):
     device = torch.device(args.device)
     # Build via the registry so --arch selects the dynamics core; cfg is saved
@@ -59,19 +46,17 @@ def train(args):
     if args.smoke:
         tok = FSQAutoencoder().to(device).eval()
         B, T, H = 2, args.context, args.horizon
-        ctx_frames = torch.rand(B, T, 3, 64, 64, device=device)
-        tgt_frames = torch.rand(B, H, 3, 64, 64, device=device)
-        ctx_actions = torch.randint(0, 9, (B, T), device=device)
-        tgt_actions = torch.randint(0, 9, (B, H), device=device)
-        z_ctx = build_context(ctx_actions, encode_frames(tok, ctx_frames))
-        target_tokens = encode_frames(tok, tgt_frames)
-        total, parts = rollout_loss(
-            model, tok.decode_indices, z_ctx, tgt_actions, target_tokens,
-            tgt_frames, H,
-        )
+        item = {
+            "context_frames": torch.rand(B, T, 3, 64, 64),
+            "target_frames": torch.rand(B, H, 3, 64, 64),
+            "context_actions": torch.randint(0, 9, (B, T)),
+            "target_actions": torch.randint(0, 9, (B, H)),
+        }
+        batch = model.prepare_batch(tok, item, H, device)
+        total, parts = model.loss(batch, tok.decode_indices)
         total.backward()
-        print(f"[smoke] rollout loss {total.item():.4f} "
-              f"(ce {parts['ce'].item():.4f}, pixel {parts['pixel'].item():.4f}) — OK")
+        parts_str = " ".join(f"{k} {v.item():.4f}" for k, v in parts.items())
+        print(f"[smoke] {args.arch} loss {total.item():.4f} ({parts_str}) — OK")
         return
 
     tokenizer = load_frozen_tokenizer(args.tokenizer, device)
@@ -98,28 +83,23 @@ def train(args):
     ckpt = os.path.join(args.out, "dynamics.pt")
     os.makedirs(args.out, exist_ok=True)
     for epoch in range(start_epoch, args.epochs):
-        run_ce = run_px = 0.0
+        # Accumulate whatever loss parts this arch reports (AR: ce/pixel; flow
+        # bridge: flow/pixel) so the trainer doesn't assume a fixed set.
+        run = {}
         for item in loader:
-            ctx_frames = item["context_frames"].float().to(device)
-            tgt_frames = item["target_frames"].float().to(device)
-            ctx_actions = item["context_actions"].to(device)
-            tgt_actions = item["target_actions"].to(device)
-
-            z_ctx = build_context(ctx_actions, encode_frames(tokenizer, ctx_frames))
-            target_tokens = encode_frames(tokenizer, tgt_frames)
-
-            total, parts = rollout_loss(
-                model, tokenizer.decode_indices, z_ctx, tgt_actions,
-                target_tokens, tgt_frames, args.horizon,
+            batch = model.prepare_batch(
+                tokenizer, item, args.horizon, device,
                 ce_weight=args.ce_weight, pixel_weight=args.pixel_weight,
             )
+            total, parts = model.loss(batch, tokenizer.decode_indices)
             opt.zero_grad()
             total.backward()
             opt.step()
-            run_ce += parts["ce"].item()
-            run_px += parts["pixel"].item()
+            for k, v in parts.items():
+                run[k] = run.get(k, 0.0) + v.item()
         n = max(1, len(loader))
-        print(f"epoch {epoch + 1}/{args.epochs}  ce {run_ce / n:.4f}  pixel {run_px / n:.4f}")
+        parts_str = "  ".join(f"{k} {run[k] / n:.4f}" for k in run)
+        print(f"epoch {epoch + 1}/{args.epochs}  {parts_str}")
         # Checkpoint every epoch so long runs survive interruption + resume.
         # builder + cfg let registry.load_dynamics rebuild any arch/size exactly
         # (fixes the old bug where eval assumed default d_model/n_heads/n_layers).

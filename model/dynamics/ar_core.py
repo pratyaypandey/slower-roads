@@ -219,11 +219,34 @@ class ARDynamics(nn.Module):
         return sum(p.numel() for p in self.parameters())
 
     # --- Dynamics protocol (model/interfaces.py) ---
+    @torch.no_grad()
+    def prepare_batch(self, tokenizer, item, horizon, device, ce_weight=1.0, pixel_weight=1.0):
+        """Encode a dataset item into this core's token-sequence rollout inputs."""
+        from model.dynamics.sequence import build_context
+
+        def encode(frames):
+            b, n = frames.shape[:2]
+            _, idx, _ = tokenizer(frames.reshape(b * n, *frames.shape[2:]))
+            return idx.reshape(b, n, TOKENS_PER_FRAME)
+
+        ctx_frames = item["context_frames"].float().to(device)
+        tgt_frames = item["target_frames"].float().to(device)
+        ctx_actions = item["context_actions"].to(device)
+        tgt_actions = item["target_actions"].to(device)
+        return {
+            "z_ctx": build_context(ctx_actions, encode(ctx_frames)),
+            "action_ids": tgt_actions,
+            "target_tokens": encode(tgt_frames),
+            "gt_frames": tgt_frames,
+            "horizon": horizon,
+            "ce_weight": ce_weight,
+            "pixel_weight": pixel_weight,
+        }
+
     def loss(self, batch, decoder):
         """Multi-step rollout loss for this core. `batch` carries the encoded
-        rollout inputs (the trainer runs the frozen tokenizer); `decoder` maps
-        predicted visual tokens -> frames for the pixel term. Delegates to the
-        rollout_loss function so the math lives in one place."""
+        rollout inputs; `decoder` maps predicted visual tokens -> frames for the
+        pixel term. Delegates to rollout_loss so the math lives in one place."""
         from model.dynamics.rollout_loss import rollout_loss
         return rollout_loss(
             self, decoder,
