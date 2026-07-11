@@ -13,6 +13,7 @@ import torch.nn.functional as F
 
 from model.dynamics.config import (
     C,
+    FRAME_STRIDE,
     G,
     LEVELS,
     NUM_ACTION_TOKENS,
@@ -69,7 +70,7 @@ class SelfAttention(nn.Module):
             raise ValueError(
                 f"sequence position {offset + T} exceeds the RoPE cache "
                 f"({cos.shape[0]}). Raise ARDynamics(max_seq_len=...) — a dream of "
-                f"H frames from T context needs (T+H)*{1 + 64} positions."
+                f"H frames from T context needs (T+H)*{FRAME_STRIDE} positions."
             )
         cos_t = cos[offset:offset + T]
         sin_t = sin[offset:offset + T]
@@ -177,13 +178,14 @@ class ARDynamics(nn.Module):
 
     @torch.no_grad()
     def generate_frame(self, context_tokens, action_id, sample=False,
-                       temperature=1.0, steer=None):
-        """KV-cached decode of the next frame's TOKENS_PER_FRAME visual tokens.
+                       temperature=1.0, steer=None, n_tokens=TOKENS_PER_FRAME):
+        """KV-cached decode of the next frame's `n_tokens` visual tokens.
 
         context_tokens: (B, T_ctx) prior interleaved tokens (may be empty T=0).
         action_id: (B,) int64 action id in [0, NUM_ACTION_TOKENS) for frame t.
-        Returns (B, TOKENS_PER_FRAME) predicted visual token indices in
-        [0, NUM_VISUAL_TOKENS).
+        n_tokens: visual tokens per frame (defaults to the config grid; overridable
+                  so behavioural tests can run at a smaller, CPU-fast grid).
+        Returns (B, n_tokens) predicted visual token indices in [0, NUM_VISUAL_TOKENS).
         """
         device = self.embed.weight.device
         B = action_id.shape[0]
@@ -201,7 +203,7 @@ class ARDynamics(nn.Module):
         next_logits = logits[:, -1, :]
 
         out = []
-        for _ in range(TOKENS_PER_FRAME):
+        for _ in range(n_tokens):
             next_logits = next_logits[:, :NUM_VISUAL_TOKENS]  # visual tokens only
             if sample:
                 probs = F.softmax(next_logits / temperature, dim=-1)

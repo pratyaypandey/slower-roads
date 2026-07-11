@@ -125,7 +125,7 @@ def torch_tests():
     print("\nTorch shape tests:")
     ok = True
     B, T_ctx = 2, FRAME_STRIDE
-    model = ARDynamics(d_model=64, n_heads=4, n_layers=2, max_seq_len=1024)
+    model = ARDynamics(d_model=64, n_heads=4, n_layers=2, max_seq_len=2048)
     n = model.param_count()
     print(f"  param count: {n:,} ({n / 1e6:.2f}M)")
 
@@ -163,11 +163,15 @@ def torch_tests():
     ok &= check("cached first-token == non-cached argmax", bool((ref == cached).all()))
 
     # Rollout loss end-to-end with a stub decoder (callable, not imported).
+    # Grid-agnostic: reshape the tok visual tokens onto a sqrt(tok) grid and
+    # upsample to the 64x64 frame, so this survives grid changes (8x8 -> 16x16).
     H = 3
     def stub_decoder(vis_tokens):
         b, tok = vis_tokens.shape
-        return (vis_tokens.float() / NUM_VISUAL_TOKENS).view(b, 1, 1, tok).expand(
-            b, 3, 64, 64).contiguous()
+        gg = int(round(tok ** 0.5))
+        grid = (vis_tokens.float() / NUM_VISUAL_TOKENS).view(b, 1, gg, gg)
+        return torch.nn.functional.interpolate(
+            grid, size=(64, 64), mode="nearest").expand(b, 3, 64, 64).contiguous()
 
     z_ctx = tokens
     actions = torch.randint(0, NUM_ACTION_TOKENS, (B, H))

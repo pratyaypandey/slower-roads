@@ -15,7 +15,7 @@ G = 16                        # latent grid side -> G*G tokens per frame
 # (16 = 256 tokens/frame at 64px: 4x the capacity of the old 8x8=64, enough to
 # preserve small detail like the car that a 64-token bottleneck discarded.)
 
-TOKENS_PER_FRAME = G * G                 # 64 visual tokens per frame
+TOKENS_PER_FRAME = G * G                 # G*G visual tokens per frame (256 at G=16)
 NUM_VISUAL_TOKENS = prod(LEVELS)         # 12800 visual code indices
 
 # The new sim's action is {steer, throttle}, both continuous in [-1,1] (throttle
