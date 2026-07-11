@@ -8,8 +8,9 @@ sim/node_modules/
 # real installs pull three from npm)
 sim/vendor/
 
-# Generated datasets — regenerable from seed, never committed
-data/
+# Generated datasets — regenerable from seed, never committed. Anchored to the
+# repo root so it doesn't also swallow model/data/ (the dataloader source).
+/data/
 
 # Logs
 *.log
