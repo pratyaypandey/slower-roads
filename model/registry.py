@@ -73,7 +73,19 @@ def _build(table, kind, name, cfg):
         raise KeyError(
             f"unknown {kind} {name!r}; registered: {sorted(table)}"
         )
-    return table[name](**cfg)
+    builder = table[name]
+    # Trainers pass a superset cfg (e.g. the AR d_model/n_heads plus the bridge's
+    # steps/hidden). Filter to the params THIS builder actually declares, so each
+    # component ignores knobs meant for a different arch instead of erroring.
+    return builder(**_accepted(builder, cfg))
+
+
+def _accepted(builder, cfg):
+    import inspect
+    params = inspect.signature(builder).parameters
+    if any(p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()):
+        return cfg  # builder takes **kwargs; pass everything through
+    return {k: v for k, v in cfg.items() if k in params}
 
 
 # --- Checkpoints that carry their own construction config -------------------
