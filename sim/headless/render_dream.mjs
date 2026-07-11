@@ -25,10 +25,22 @@ const OUT = args.out ?? join(REPO_ROOT, "eval", "plots", "state_dream.gif");
 
 const data = JSON.parse(readFileSync(POSES, "utf8"));
 
+// Headless WebGL on a Linux server GPU: native GL passthrough, no sandbox
+// (blocks GPU in most container setups), and ignore the GPU blocklist so the
+// H100 isn't rejected. If the context still can't init, --use-angle=swiftshader
+// is a (slow, CPU) fallback worth trying.
+const CHROME_GL_ARGS = [
+  "--no-sandbox",
+  "--use-gl=angle",
+  "--use-angle=gl",
+  "--ignore-gpu-blocklist",
+  "--enable-gpu",
+];
+
 const { chromium } = await importPlaywright();
 const server = await serveDir(SIM_DIR);
 const port = server.address().port;
-const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=default"] });
+const browser = await chromium.launch({ args: CHROME_GL_ARGS });
 const page = await browser.newPage();
 page.on("console", (m) => console.log("[page]", m.text()));
 await page.goto(`http://localhost:${port}/headless/dream_page.html`);

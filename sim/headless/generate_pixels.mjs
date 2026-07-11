@@ -31,7 +31,11 @@ const { chromium } = await importPlaywright();
 const server = await serveDir(SIM_DIR);
 const port = server.address().port;
 
-const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=default"] });
+// Headless WebGL on a server GPU (see render_dream.mjs for the rationale).
+const browser = await chromium.launch({
+  args: ["--no-sandbox", "--use-gl=angle", "--use-angle=gl",
+         "--ignore-gpu-blocklist", "--enable-gpu"],
+});
 const page = await browser.newPage();
 page.on("console", (m) => console.log("[page]", m.text()));
 await page.goto(`http://localhost:${port}/headless/capture_page.html`);

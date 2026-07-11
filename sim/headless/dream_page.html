@@ -18,11 +18,21 @@
     import { SlowSim } from "../core/index.js";
     import { SimRenderer } from "../render/renderer.js";
 
+    // ONE renderer for the whole run — reused across sequences. Creating a
+    // second WebGLRenderer loses the first context (ReadPixels GPU stall ->
+    // CONTEXT_LOST), and the second init then fails, so we cache it.
+    let _renderer = null;
+    function getRenderer(size) {
+      if (!_renderer) {
+        _renderer = new SimRenderer(document.getElementById("view"), { dataSize: size });
+        _renderer.setDisplaySize(size, size);
+      }
+      return _renderer;
+    }
+
     window.renderPoses = async (seed, poses, size) => {
-      const canvas = document.getElementById("view");
       const sim = new SlowSim({ seed });
-      const renderer = new SimRenderer(canvas, { dataSize: size });
-      renderer.setDisplaySize(size, size);
+      const renderer = getRenderer(size);
 
       const frames = [];
       for (const pose of poses) {
@@ -38,6 +48,9 @@
         sim.carD = near.d;
         renderer.render(sim, 0);
         frames.push(toBase64(renderer.capture(size)));
+        // Yield to the event loop between captures so the sustained ReadPixels
+        // readbacks don't stall the GPU into a lost context.
+        if (frames.length % 16 === 0) await new Promise((r) => setTimeout(r, 0));
       }
       return frames;
     };
