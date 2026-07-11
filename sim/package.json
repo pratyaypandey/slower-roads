@@ -6,8 +6,9 @@
   "scripts": {
     "test": "node test/core.smoke.mjs"
   },
-  "//optionalDependencies": "playwright is only for headless/generate_pixels.mjs (WebGL frame capture); the core sim + headless/generate.mjs need nothing.",
+  "//optionalDependencies": "playwright + gifenc are only for the WebGL capture scripts (generate_pixels.mjs, render_dream.mjs); the core sim + headless/generate.mjs need nothing.",
   "optionalDependencies": {
-    "playwright": "^1.44.0"
+    "playwright": "^1.44.0",
+    "gifenc": "^1.0.3"
   }
 }

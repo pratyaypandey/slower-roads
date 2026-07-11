@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>SlowSim dream render</title>
+  <script type="importmap">
+    { "imports": { "three": "../vendor/three.module.js" } }
+  </script>
+</head>
+<body>
+  <canvas id="view" width="256" height="256"></canvas>
+  <script type="module">
+    // Render a supplied pose sequence through the REAL renderer. We keep the sim
+    // as the world/road source (correct seed) but overwrite sim.car with each
+    // dreamed (or true) pose before rendering — so the scenery is real and only
+    // the car's trajectory is what we drive. This is Option A: watch the state
+    // model's dream as a fully-rendered drive.
+    import { SlowSim } from "../core/index.js";
+    import { SimRenderer } from "../render/renderer.js";
+
+    window.renderPoses = async (seed, poses, size) => {
+      const canvas = document.getElementById("view");
+      const sim = new SlowSim({ seed });
+      const renderer = new SimRenderer(canvas, { dataSize: size });
+      renderer.setDisplaySize(size, size);
+
+      const frames = [];
+      for (const pose of poses) {
+        // Overwrite the car pose; sim.state is a getter over sim.car, so render()
+        // picks these up. Road/atmosphere stay from the seed.
+        sim.car.x = pose.x;
+        sim.car.z = pose.z;
+        sim.car.heading = pose.heading;
+        sim.car.speed = pose.speed;
+        // carD (distance along road) drives some scenery LOD; approximate from
+        // the nearest road point so terrain/veg stream correctly around the car.
+        const near = sim.road.nearest(pose.x, pose.z, sim.carD);
+        sim.carD = near.d;
+        renderer.render(sim, 0);
+        frames.push(btoa(String.fromCharCode(...renderer.capture(size))));
+      }
+      return frames;
+    };
+
+    window.__ready = true;
+  </script>
+</body>
+</html>
