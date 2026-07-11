@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Slower Roads — sim</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+      #view { width: 100vw; height: 100vh; display: block; }
+      #hint {
+        position: fixed; left: 12px; bottom: 12px;
+        font: 13px system-ui, sans-serif; color: #fff; opacity: 0.6;
+        user-select: none; pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <div id="hint">WASD to drive</div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

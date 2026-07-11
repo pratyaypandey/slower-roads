@@ -1,1 +1,16 @@
 autoencoder.py
+
+# Node
+node_modules/
+sim/node_modules/
+
+# Local dependency workaround (fetched from CDN on network-restricted hosts;
+# real installs pull three from npm)
+sim/vendor/
+
+# Generated datasets — regenerable from seed, never committed
+data/
+
+# Logs
+*.log
+npm-debug.log*
