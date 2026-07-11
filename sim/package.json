@@ -1,0 +1,9 @@
+{
+  "name": "slower-roads-sim",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Deterministic driving sim + oracle (M0). See ../plans/SIM.md",
+  "scripts": {
+    "test": "node test/core.smoke.mjs"
+  }
+}

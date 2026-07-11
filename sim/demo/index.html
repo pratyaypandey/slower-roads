@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SlowSim — dream drive</title>
+  <link rel="stylesheet" href="./style.css" />
+  <script type="importmap">
+    { "imports": { "three": "../vendor/three.module.js" } }
+  </script>
+</head>
+<body>
+  <div id="stage">
+    <canvas id="view"></canvas>
+
+    <div id="hud">
+      <div class="hud-row"><span class="hud-k">speed</span><span id="hud-speed" class="hud-v">0.0</span></div>
+      <div class="hud-row"><span class="hud-k">offset</span><span id="hud-offset" class="hud-v">0.0</span></div>
+      <div class="hud-row"><span class="hud-k">status</span><span id="hud-status" class="hud-v">on road</span></div>
+    </div>
+
+    <div id="keyhint">WASD / arrows to drive</div>
+  </div>
+
+  <aside id="panel">
+    <header>
+      <h1>SlowSim</h1>
+      <p class="sub">stylized-dream driving oracle</p>
+    </header>
+
+    <section class="group">
+      <div class="group-head">World seed</div>
+      <div class="seed-row">
+        <input id="seed-input" type="number" value="42" step="1" />
+        <button id="seed-btn" title="regenerate world">new seed</button>
+      </div>
+      <button id="regen-btn" class="wide">regenerate</button>
+    </section>
+
+    <section class="group">
+      <div class="group-head">
+        <span>Dials</span>
+        <button id="reset-dials" class="mini">reset</button>
+      </div>
+      <div id="dials"></div>
+    </section>
+
+    <section class="group">
+      <div class="group-head">
+        <span>Look</span>
+        <button id="reset-post" class="mini">reset</button>
+      </div>
+      <div id="posterize"></div>
+    </section>
+  </aside>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
