@@ -34,7 +34,7 @@
           skeleton: sim.skeleton(),
           labels: sim.frameLabels(),
           // base64 so it survives the Playwright JS->Node boundary as JSON.
-          rgba: btoa(String.fromCharCode(...rgba)),
+          rgba: toBase64(rgba),
         });
         sim.step(action);
       }
@@ -42,10 +42,21 @@
       renderer.render(sim, 0);
       samples.push({
         action: null, state: sim.state, skeleton: sim.skeleton(),
-        labels: sim.frameLabels(), rgba: btoa(String.fromCharCode(...renderer.capture(size))),
+        labels: sim.frameLabels(), rgba: toBase64(renderer.capture(size)),
       });
       return { seed, steps, dt: sim.dt, size, samples };
     };
+
+    // Base64 in chunks — String.fromCharCode(...buf) overflows the call stack
+    // for real frame sizes (a spread of size^2*4 elements into args).
+    function toBase64(bytes) {
+      let s = "";
+      const CH = 0x8000;
+      for (let i = 0; i < bytes.length; i += CH) {
+        s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+      }
+      return btoa(s);
+    }
 
     window.__ready = true;
   </script>

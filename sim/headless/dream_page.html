@@ -37,10 +37,21 @@
         const near = sim.road.nearest(pose.x, pose.z, sim.carD);
         sim.carD = near.d;
         renderer.render(sim, 0);
-        frames.push(btoa(String.fromCharCode(...renderer.capture(size))));
+        frames.push(toBase64(renderer.capture(size)));
       }
       return frames;
     };
+
+    // Base64 in chunks — String.fromCharCode(...buf) spreads the whole array
+    // into args and overflows the call stack for real frame sizes (256^2*4).
+    function toBase64(bytes) {
+      let s = "";
+      const CH = 0x8000;
+      for (let i = 0; i < bytes.length; i += CH) {
+        s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+      }
+      return btoa(s);
+    }
 
     window.__ready = true;
   </script>
