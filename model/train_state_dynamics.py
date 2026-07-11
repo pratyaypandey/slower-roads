@@ -82,25 +82,49 @@ def train(args):
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
 
+    # Standardize per-dim: x/z span thousands while heading/speed are O(1), so a
+    # raw MSE is ~100000x more sensitive to position than to the steering/accel
+    # dynamics we actually want learned. Run the whole rollout in z-scored space
+    # so all four dims contribute equally; stats are saved with the checkpoint.
+    mean, std = dataset_state_stats(dataset, device)
+    print(f"state mean {mean.tolist()}\nstate std  {std.tolist()}")
+
     os.makedirs(args.out, exist_ok=True)
     for epoch in range(args.epochs):
         running = 0.0
         for item in loader:
             # context=1, so the last context state is the rollout's start.
-            init = item["context_state"][:, -1].float().to(device)
+            init = ((item["context_state"][:, -1].float().to(device)) - mean) / std
             actions = item["target_actions"].to(device)
-            targets = item["target_state"].float().to(device)
+            targets = (item["target_state"].float().to(device) - mean) / std
             loss = rollout_loss(model, init, actions, targets)
             opt.zero_grad()
             loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
             opt.step()
             running += loss.item()
         avg = running / max(1, len(loader))
         print(f"epoch {epoch + 1}/{args.epochs}  rollout_mse {avg:.5f}  rmse {math.sqrt(avg):.4f}")
 
     ckpt = os.path.join(args.out, "state_dynamics.pt")
-    torch.save({"model": model.state_dict(), "hidden": args.hidden}, ckpt)
+    torch.save({"model": model.state_dict(), "hidden": args.hidden,
+                "state_mean": mean.cpu(), "state_std": std.cpu()}, ckpt)
     print(f"saved {ckpt}")
+
+
+def dataset_state_stats(dataset, device):
+    # Mean/std per state dim over every state in the dataset.
+    all_states = []
+    for i in range(len(dataset)):
+        item = dataset[i]
+        all_states.append(item["context_state"])
+        all_states.append(item["target_state"])
+    flat = torch.tensor(
+        [row for chunk in all_states for row in chunk], dtype=torch.float32, device=device
+    )
+    mean = flat.mean(dim=0)
+    std = flat.std(dim=0).clamp_min(1e-6)  # guard dims with no variance
+    return mean, std
 
 
 def main():
@@ -112,6 +136,7 @@ def main():
     p.add_argument("--lr", type=float, default=1e-3)
     p.add_argument("--hidden", type=int, default=128)
     p.add_argument("--horizon", type=int, default=8)
+    p.add_argument("--grad-clip", type=float, default=1.0, dest="grad_clip")
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--smoke", action="store_true")
     train(p.parse_args())
