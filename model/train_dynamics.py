@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader
 
 from model.tokenizer.fsq_autoencoder import FSQAutoencoder
 from model.dynamics.ar_core import ARDynamics
+from model.registry import build_dynamics, load_tokenizer
 from model.dynamics.rollout_loss import rollout_loss
 from model.dynamics.config import (
     NUM_VISUAL_TOKENS,
@@ -29,10 +30,10 @@ from model.data.dataset import SimSequenceDataset
 
 
 def load_frozen_tokenizer(path, device):
-    ckpt = torch.load(path, map_location=device)
-    tok = FSQAutoencoder(hidden=ckpt.get("hidden", 64)).to(device)
-    tok.load_state_dict(ckpt["model"])
-    tok.eval()
+    # Rebuild via the registry so a non-default tokenizer (variant/size) reloads
+    # from its saved cfg. Back-compat default cfg for old checkpoints.
+    tok, _ = load_tokenizer(path, default_cfg={"hidden": 64}, map_location=device)
+    tok = tok.to(device).eval()
     for p in tok.parameters():
         p.requires_grad_(False)
     return tok
@@ -49,10 +50,11 @@ def encode_frames(tokenizer, frames):
 
 def train(args):
     device = torch.device(args.device)
-    model = ARDynamics(
-        d_model=args.d_model, n_heads=args.n_heads, n_layers=args.n_layers
-    ).to(device)
-    print(f"dynamics parameters: {model.param_count() / 1e6:.2f}M")
+    # Build via the registry so --arch selects the dynamics core; cfg is saved
+    # with the checkpoint so it reloads exactly (default = ar_transformer).
+    dyn_cfg = {"d_model": args.d_model, "n_heads": args.n_heads, "n_layers": args.n_layers}
+    model = build_dynamics(args.arch, **dyn_cfg).to(device)
+    print(f"dynamics '{args.arch}' parameters: {model.param_count() / 1e6:.2f}M")
 
     if args.smoke:
         tok = FSQAutoencoder().to(device).eval()
@@ -119,7 +121,10 @@ def train(args):
         n = max(1, len(loader))
         print(f"epoch {epoch + 1}/{args.epochs}  ce {run_ce / n:.4f}  pixel {run_px / n:.4f}")
         # Checkpoint every epoch so long runs survive interruption + resume.
-        torch.save({"model": model.state_dict(), "opt": opt.state_dict(),
+        # builder + cfg let registry.load_dynamics rebuild any arch/size exactly
+        # (fixes the old bug where eval assumed default d_model/n_heads/n_layers).
+        torch.save({"builder": args.arch, "cfg": dyn_cfg,
+                    "model": model.state_dict(), "opt": opt.state_dict(),
                     "epoch": epoch + 1}, ckpt)
     print(f"saved {ckpt}")
 
@@ -134,6 +139,7 @@ def main():
     p.add_argument("--lr", type=float, default=3e-4)
     p.add_argument("--context", type=int, default=4)
     p.add_argument("--horizon", type=int, default=6)
+    p.add_argument("--arch", default="ar_transformer", help="registered dynamics name")
     p.add_argument("--d-model", type=int, default=256, dest="d_model")
     p.add_argument("--n-heads", type=int, default=4, dest="n_heads")
     p.add_argument("--n-layers", type=int, default=4, dest="n_layers")

@@ -21,8 +21,7 @@ import os
 import numpy as np
 import torch
 
-from model.tokenizer.fsq_autoencoder import FSQAutoencoder
-from model.dynamics.ar_core import ARDynamics
+from model.registry import load_tokenizer, load_dynamics
 from model.dynamics.config import NUM_VISUAL_TOKENS, TOKENS_PER_FRAME
 from model.dynamics.sequence import build_context, action_to_vocab
 from eval.drift import pixel_drift
@@ -58,12 +57,13 @@ def main():
     args = p.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    tok_ck = torch.load(args.tokenizer, map_location=device)
-    tok = FSQAutoencoder(hidden=tok_ck.get("hidden", 64)).to(device).eval()
-    tok.load_state_dict(tok_ck["model"])
-    dyn_ck = torch.load(args.dynamics, map_location=device)
-    dyn = ARDynamics().to(device).eval()
-    dyn.load_state_dict(dyn_ck["model"])
+    # Registry loaders rebuild each model from its saved builder+cfg, so a
+    # non-default tokenizer/dynamics (a variant, or a differently-sized core)
+    # reloads correctly instead of silently constructing the default arch.
+    tok, _ = load_tokenizer(args.tokenizer, default_cfg={"hidden": 64}, map_location=device)
+    tok = tok.to(device).eval()
+    dyn, _ = load_dynamics(args.dynamics, map_location=device)
+    dyn = dyn.to(device).eval()
 
     T, H = args.context, args.steps
     frames_np, actions, _ = load_frames(args.data, args.start, T + H)

@@ -17,10 +17,10 @@ import torch
 from torch.utils.data import DataLoader
 
 from model.tokenizer.fsq_autoencoder import (
-    FSQAutoencoder,
     reconstruction_loss,
     count_parameters,
 )
+from model.registry import build_tokenizer
 from model.data.dataset import SimSequenceDataset
 
 
@@ -33,8 +33,11 @@ def frames_from_batch(item):
 
 def train(args):
     device = torch.device(args.device)
-    model = FSQAutoencoder(hidden=args.hidden).to(device)
-    print(f"tokenizer parameters: {count_parameters(model) / 1e6:.2f}M")
+    # Build via the registry so --arch selects the tokenizer; the cfg is saved
+    # with the checkpoint so it reloads exactly (any size/variant).
+    tok_cfg = {"hidden": args.hidden}
+    model = build_tokenizer(args.arch, **tok_cfg).to(device)
+    print(f"tokenizer '{args.arch}' parameters: {count_parameters(model) / 1e6:.2f}M")
 
     if args.smoke:
         frames = torch.rand(4, 3, 64, 64, device=device)
@@ -80,7 +83,9 @@ def train(args):
         avg = running / max(1, len(loader))
         print(f"epoch {epoch + 1}/{args.epochs}  recon_{args.loss} {avg:.4f}")
         # Checkpoint every epoch so a long run is resumable if interrupted.
-        torch.save({"model": model.state_dict(), "hidden": args.hidden,
+        # builder + cfg let registry.load_tokenizer rebuild any variant exactly.
+        torch.save({"builder": args.arch, "cfg": tok_cfg, "hidden": args.hidden,
+                    "model": model.state_dict(),
                     "opt": opt.state_dict(), "epoch": epoch + 1}, ckpt)
     print(f"saved {ckpt}")
 
@@ -88,6 +93,7 @@ def train(args):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--data", default="data/seed1")
+    p.add_argument("--arch", default="fsq", help="registered tokenizer name (default: fsq)")
     p.add_argument("--out", default="checkpoints")
     p.add_argument("--epochs", type=int, default=20)
     p.add_argument("--batch-size", type=int, default=16)

@@ -74,3 +74,27 @@ def _build(table, kind, name, cfg):
             f"unknown {kind} {name!r}; registered: {sorted(table)}"
         )
     return table[name](**cfg)
+
+
+# --- Checkpoints that carry their own construction config -------------------
+# Trainers save {"builder": name, "cfg": {...}, "model": state_dict, ...}. The
+# loaders rebuild via the registry so ANY variant (a bigger tokenizer after the
+# sim upgrade, the flow bridge, a ViT) reloads exactly, with no hardcoded arch in
+# the eval scripts. Old checkpoints (no builder key) fall back to the defaults.
+
+def load_tokenizer(checkpoint, default_name="fsq", default_cfg=None, map_location="cpu"):
+    return _load(build_tokenizer, checkpoint, default_name, default_cfg, map_location)
+
+
+def load_dynamics(checkpoint, default_name="ar_transformer", default_cfg=None, map_location="cpu"):
+    return _load(build_dynamics, checkpoint, default_name, default_cfg, map_location)
+
+
+def _load(build_fn, checkpoint, default_name, default_cfg, map_location):
+    import torch
+    ckpt = torch.load(checkpoint, map_location=map_location)
+    name = ckpt.get("builder", default_name)
+    cfg = ckpt.get("cfg", default_cfg or {})
+    model = build_fn(name, **cfg)
+    model.load_state_dict(ckpt["model"])
+    return model, ckpt

@@ -18,7 +18,7 @@ import os
 import numpy as np
 import torch
 
-from model.tokenizer.fsq_autoencoder import FSQAutoencoder, reconstruction_loss
+from model.registry import load_tokenizer
 
 
 def load_frames(data_dir, idxs):
@@ -40,10 +40,8 @@ def main():
     args = p.parse_args()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    ckpt = torch.load(args.ckpt, map_location=device)
-    model = FSQAutoencoder(hidden=ckpt.get("hidden", 64)).to(device)
-    model.load_state_dict(ckpt["model"])
-    model.eval()
+    model, _ = load_tokenizer(args.ckpt, default_cfg={"hidden": 64}, map_location=device)
+    model = model.to(device).eval()
 
     manifest = json.load(open(os.path.join(args.data, "manifest.json")))
     total = len(manifest["samples"])
