@@ -13,6 +13,7 @@ from model.dynamics.config import (
     NUM_VISUAL_TOKENS,
     TOKENS_PER_FRAME,
 )
+from model.dynamics.sequence import action_to_vocab
 
 
 def _frame_logits(model, prefix, target_visual):
@@ -58,7 +59,7 @@ def rollout_loss(model, decoder, z_ctx, action_ids, target_tokens, gt_frames, H,
     pixel_total = z_ctx.new_zeros((), dtype=torch.float32)
 
     for k in range(H):
-        u_t = (action_ids[:, k] + NUM_VISUAL_TOKENS).unsqueeze(1)   # (B,1)
+        u_t = action_to_vocab(action_ids[:, k]).unsqueeze(1)   # (B,1)
         prefix_k = torch.cat([prefix, u_t], dim=1)
         target_k = target_tokens[:, k, :]                          # (B, tokens)
 

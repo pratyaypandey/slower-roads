@@ -24,7 +24,7 @@ import torch
 from model.tokenizer.fsq_autoencoder import FSQAutoencoder
 from model.dynamics.ar_core import ARDynamics
 from model.dynamics.config import NUM_VISUAL_TOKENS, TOKENS_PER_FRAME
-from model.train_dynamics import build_context
+from model.dynamics.sequence import build_context, action_to_vocab
 from eval.drift import pixel_drift
 
 
@@ -83,7 +83,7 @@ def main():
             frame_hat = tok.decode_indices(vis)               # (1,3,64,64)
             dreamed.append(frame_hat.squeeze(0).cpu())
             # Autoregress: append (action, predicted visual) to the prefix.
-            u = (a + NUM_VISUAL_TOKENS).view(1, 1)
+            u = action_to_vocab(a).view(1, 1)
             prefix = torch.cat([prefix, u, vis], dim=1)
     dream = torch.stack(dreamed).clamp(0, 1).numpy()          # (H,3,64,64)
     truth = frames_np[T:T + H]                                # (H,3,64,64)

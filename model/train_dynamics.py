@@ -24,6 +24,7 @@ from model.dynamics.config import (
     NUM_VISUAL_TOKENS,
     TOKENS_PER_FRAME,
 )
+from model.dynamics.sequence import build_context
 from model.data.dataset import SimSequenceDataset
 
 
@@ -44,15 +45,6 @@ def encode_frames(tokenizer, frames):
     flat = frames.reshape(b * n, *frames.shape[2:])
     _, indices, _ = tokenizer(flat)
     return indices.reshape(b, n, TOKENS_PER_FRAME)
-
-
-def build_context(action_ids_ctx, visual_ctx):
-    # Interleave [u_0, z_0..., u_1, z_1..., ...] as a flat (B, T*FRAME_STRIDE)
-    # tensor. Action ids get the vocab offset; visual ids stay as-is.
-    b, t = action_ids_ctx.shape
-    u = (action_ids_ctx + NUM_VISUAL_TOKENS).unsqueeze(-1)          # (B,T,1)
-    seq = torch.cat([u, visual_ctx], dim=-1)                        # (B,T,1+tokens)
-    return seq.reshape(b, t * seq.shape[-1])
 
 
 def train(args):

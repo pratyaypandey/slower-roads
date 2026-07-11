@@ -22,6 +22,7 @@ from model.dynamics.config import (
     action_to_token_id,
     tokenize_action,
 )
+from model.registry import register_dynamics
 
 
 def build_rope_cache(seq_len, head_dim, base=10000.0, device=None, dtype=torch.float32):
@@ -210,6 +211,26 @@ class ARDynamics(nn.Module):
 
     def param_count(self):
         return sum(p.numel() for p in self.parameters())
+
+    # --- Dynamics protocol (model/interfaces.py) ---
+    def loss(self, batch, decoder):
+        """Multi-step rollout loss for this core. `batch` carries the encoded
+        rollout inputs (the trainer runs the frozen tokenizer); `decoder` maps
+        predicted visual tokens -> frames for the pixel term. Delegates to the
+        rollout_loss function so the math lives in one place."""
+        from model.dynamics.rollout_loss import rollout_loss
+        return rollout_loss(
+            self, decoder,
+            batch["z_ctx"], batch["action_ids"], batch["target_tokens"],
+            batch["gt_frames"], batch["horizon"],
+            ce_weight=batch.get("ce_weight", 1.0),
+            pixel_weight=batch.get("pixel_weight", 1.0),
+        )
+
+
+@register_dynamics("ar_transformer")
+def _build_ar(d_model=256, n_heads=4, n_layers=4):
+    return ARDynamics(d_model=d_model, n_heads=n_heads, n_layers=n_layers)
 
 
 if __name__ == "__main__":

@@ -17,7 +17,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-G = 8  # latent grid side (8x8 = 64 tokens per frame)
+from model.dynamics.config import G, LEVELS  # single source for grid + levels
+from model.registry import register_tokenizer
 
 
 class FSQ(nn.Module):
@@ -132,7 +133,9 @@ class Decoder(nn.Module):
 
 
 class FSQAutoencoder(nn.Module):
-    def __init__(self, levels=(8, 8, 8, 5, 5), hidden=64, companding: Optional[Callable] = None):
+    # levels default comes from config.LEVELS so the tokenizer and dynamics vocab
+    # can't silently disagree; the value is unchanged from the old literal.
+    def __init__(self, levels=tuple(LEVELS), hidden=64, companding: Optional[Callable] = None):
         super().__init__()
         self.fsq = FSQ(list(levels), companding=companding)
         self.encoder = Encoder(self.fsq.num_channels, hidden)
@@ -153,6 +156,20 @@ class FSQAutoencoder(nn.Module):
         indices = self.fsq.codes_to_indices(zq)
         recon = self.decode(zq)
         return recon, indices, z_cont
+
+    # --- Tokenizer protocol (model/interfaces.py) ---
+    @property
+    def codebook_size(self):
+        return self.fsq.codebook_size
+
+    @property
+    def tokens_per_frame(self):
+        return G * G
+
+
+@register_tokenizer("fsq")
+def _build_fsq(levels=tuple(LEVELS), hidden=64, companding=None):
+    return FSQAutoencoder(levels=levels, hidden=hidden, companding=companding)
 
 
 def reconstruction_loss(recon, target, kind="l1"):
