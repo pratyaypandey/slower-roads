@@ -72,14 +72,29 @@ def train(args):
         representation="rgb",
     )
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
-    opt = torch.optim.Adam(model.parameters(), lr=args.lr)
+    opt = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.95))
+
+    # Cosine LR with linear warmup, and EMA of the weights (the research's cheapest
+    # quality bump). Eval/checkpoints use the EMA weights. FSQ has no learnable
+    # codebook, so EMA here means EMA of the *network* weights.
+    import math
+    total_steps = args.epochs * max(1, len(loader))
+    sched = None
+    if args.cosine:
+        warm = max(1, int(args.warmup_frac * total_steps))
+        sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: (
+            s / warm if s < warm else
+            0.05 + 0.95 * 0.5 * (1 + math.cos(math.pi * (s - warm) / max(1, total_steps - warm)))))
+    ema = {k: v.detach().clone() for k, v in model.state_dict().items()} if args.ema > 0 else None
 
     # Resume: reload model + optimizer + epoch so --epochs is a total, and
     # training picks up where the checkpoint left off.
     start_epoch = 0
     if args.resume:
         prev = torch.load(args.resume, map_location=device)
-        model.load_state_dict(prev["model"])
+        model.load_state_dict(prev.get("model_raw", prev["model"]))
+        if ema is not None and "model" in prev:
+            ema = {k: v.detach().clone().to(device) for k, v in prev["model"].items()}
         if "opt" in prev:
             opt.load_state_dict(prev["opt"])
         start_epoch = prev.get("epoch", 0)
@@ -96,14 +111,27 @@ def train(args):
             opt.zero_grad()
             loss.backward()
             opt.step()
+            if sched is not None:
+                sched.step()
+            if ema is not None:
+                with torch.no_grad():
+                    for k, v in model.state_dict().items():
+                        if v.dtype.is_floating_point:
+                            ema[k].mul_(args.ema).add_(v.detach(), alpha=1 - args.ema)
+                        else:
+                            ema[k].copy_(v)
             running += loss.item()
         avg = running / max(1, len(loader))
         label = "stack" if args.loss_stack else args.loss
-        print(f"epoch {epoch + 1}/{args.epochs}  loss_{label} {avg:.4f}")
+        lr_now = opt.param_groups[0]["lr"]
+        print(f"epoch {epoch + 1}/{args.epochs}  loss_{label} {avg:.4f}  lr {lr_now:.2e}")
         # Checkpoint every epoch so a long run is resumable if interrupted.
         # builder + cfg let registry.load_tokenizer rebuild any variant exactly.
+        # Save the EMA weights as "model" when EMA is on (they eval better); keep
+        # the raw weights under "model_raw" so a resume continues the live model.
+        save_model = ema if ema is not None else model.state_dict()
         torch.save({"builder": args.arch, "cfg": tok_cfg, "hidden": args.hidden,
-                    "model": model.state_dict(),
+                    "model": save_model, "model_raw": model.state_dict(),
                     "opt": opt.state_dict(), "epoch": epoch + 1}, ckpt)
     print(f"saved {ckpt}")
 
@@ -126,6 +154,9 @@ def main():
     p.add_argument("--lpips-weight", type=float, default=0.1, dest="lpips_weight")
     p.add_argument("--saliency-alpha", type=float, default=2.0, dest="saliency_alpha")
     p.add_argument("--levels", default=None, help="override FSQ levels, e.g. '8,5,5,5' (vocab 1024)")
+    p.add_argument("--cosine", action="store_true", help="cosine LR decay (to 5%) with linear warmup")
+    p.add_argument("--warmup-frac", type=float, default=0.03, dest="warmup_frac")
+    p.add_argument("--ema", type=float, default=0.0, help="weight-EMA decay (e.g. 0.999); 0 disables")
     p.add_argument("--context", type=int, default=4)
     p.add_argument("--horizon", type=int, default=6)
     p.add_argument("--resume", default=None, help="checkpoint to continue training from")

@@ -54,6 +54,19 @@ def main():
     l1 = torch.abs(recon - frames).mean(dim=(1, 2, 3))
     print("per-frame L1:", "  ".join(f"{v:.4f}" for v in l1.tolist()))
 
+    # Mean L1 over the WHOLE dataset — the single robust number to compare configs
+    # against (the 6-frame line above is just for the eyeball grid). Batched so a
+    # 2500-frame set fits in memory.
+    all_idx = np.arange(total)
+    tot, cnt = 0.0, 0
+    with torch.no_grad():
+        for i in range(0, total, 256):
+            fb = torch.from_numpy(load_frames(args.data, all_idx[i:i + 256])).float().to(device)
+            rb, _, _ = model(fb)
+            tot += torch.abs(rb - fb).sum().item()
+            cnt += fb.numel()
+    print(f"dataset mean L1: {tot / cnt:.5f}  (over {total} frames)")
+
     # Codebook usage over a big sample: how many distinct codes appear? Low usage
     # (a handful of the 12800) means the tokenizer collapsed and isn't really
     # using its capacity — a failure the recon loss can hide on easy images.
