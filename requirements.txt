@@ -1,0 +1,5 @@
+# Model side (training). The sim is JS and needs no Python.
+# Install into a fresh env:  pip install -r requirements.txt
+torch>=2.1
+numpy>=1.24
+pillow>=10.0        # loading .png frames from the sim data-gen

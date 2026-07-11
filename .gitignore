@@ -1,1 +1,16 @@
 autoencoder.py
+
+# Node
+node_modules/
+sim/node_modules/
+
+# Generated datasets — regenerable from seed, never committed
+/data/
+
+# Python
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+npm-debug.log*
