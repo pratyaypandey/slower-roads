@@ -12,6 +12,7 @@ CPU-shape-testable with --smoke (few random frames, no data needed).
 """
 
 import argparse
+import json
 import os
 
 import torch
@@ -31,6 +32,20 @@ def frames_from_batch(item):
     # for reconstruction we only need frames, so merge both into one (N,3,64,64).
     frames = torch.cat([item["context_frames"], item["target_frames"]], dim=1)
     return frames.reshape(-1, *frames.shape[2:]).float()
+
+
+def load_all_frames(data_dir, device):
+    """Load every unique frame once into a single (N,3,64,64) device tensor.
+
+    Reconstruction training only needs individual frames, and the whole 2.5k-frame
+    seed set is ~137MB — so caching it on the GPU makes training compute-bound
+    instead of re-reading ~390 overlapping-window frames per step from disk. It
+    also fixes the 10x redundancy of flattening sequence windows.
+    """
+    import numpy as np
+    manifest = json.load(open(os.path.join(data_dir, "manifest.json")))
+    arrs = [np.load(os.path.join(data_dir, s["frame"])) for s in manifest["samples"]]
+    return torch.from_numpy(np.stack(arrs)).float().to(device)
 
 
 def train(args):
@@ -65,20 +80,40 @@ def train(args):
         print(f"[smoke] recon {recon.shape}, loss {loss.item():.4f} — OK")
         return
 
-    dataset = SimSequenceDataset(
-        os.path.join(args.data, "manifest.json"),
-        context=args.context,
-        horizon=args.horizon,
-        representation="rgb",
-    )
-    loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
+    # Two data paths: a fast in-RAM frame cache (unique frames on the GPU, no
+    # DataLoader) or the sequence-window dataset. epoch_batches() yields (B,3,64,64)
+    # frame batches either way so the training loop below is identical.
+    if args.frame_cache:
+        all_frames = load_all_frames(args.data, device)
+        n = all_frames.shape[0]
+        steps_per_epoch = max(1, n // args.batch_size)
+        print(f"frame cache: {n} frames on {device}, {steps_per_epoch} steps/epoch")
+
+        def epoch_batches():
+            perm = torch.randperm(n, device=device)
+            for i in range(steps_per_epoch):
+                yield all_frames[perm[i * args.batch_size:(i + 1) * args.batch_size]]
+    else:
+        dataset = SimSequenceDataset(
+            os.path.join(args.data, "manifest.json"),
+            context=args.context,
+            horizon=args.horizon,
+            representation="rgb",
+        )
+        loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
+        steps_per_epoch = len(loader)
+
+        def epoch_batches():
+            for item in loader:
+                yield frames_from_batch(item).to(device)
+
     opt = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.95))
 
     # Cosine LR with linear warmup, and EMA of the weights (the research's cheapest
     # quality bump). Eval/checkpoints use the EMA weights. FSQ has no learnable
     # codebook, so EMA here means EMA of the *network* weights.
     import math
-    total_steps = args.epochs * max(1, len(loader))
+    total_steps = args.epochs * max(1, steps_per_epoch)
     sched = None
     if args.cosine:
         warm = max(1, int(args.warmup_frac * total_steps))
@@ -104,8 +139,7 @@ def train(args):
     os.makedirs(args.out, exist_ok=True)
     for epoch in range(start_epoch, args.epochs):
         running = 0.0
-        for item in loader:
-            frames = frames_from_batch(item).to(device)
+        for frames in epoch_batches():
             recon, _, _ = model(frames)
             loss = loss_fn(recon, frames)
             opt.zero_grad()
@@ -121,7 +155,7 @@ def train(args):
                         else:
                             ema[k].copy_(v)
             running += loss.item()
-        avg = running / max(1, len(loader))
+        avg = running / max(1, steps_per_epoch)
         label = "stack" if args.loss_stack else args.loss
         lr_now = opt.param_groups[0]["lr"]
         print(f"epoch {epoch + 1}/{args.epochs}  loss_{label} {avg:.4f}  lr {lr_now:.2e}")
@@ -157,6 +191,8 @@ def main():
     p.add_argument("--cosine", action="store_true", help="cosine LR decay (to 5%) with linear warmup")
     p.add_argument("--warmup-frac", type=float, default=0.03, dest="warmup_frac")
     p.add_argument("--ema", type=float, default=0.0, help="weight-EMA decay (e.g. 0.999); 0 disables")
+    p.add_argument("--frame-cache", action="store_true", dest="frame_cache",
+                   help="load all unique frames into a GPU tensor (fast; skips the sequence dataset)")
     p.add_argument("--context", type=int, default=4)
     p.add_argument("--horizon", type=int, default=6)
     p.add_argument("--resume", default=None, help="checkpoint to continue training from")

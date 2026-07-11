@@ -9,8 +9,10 @@ cd /workspace/sr || exit 1
 export PYTHONUNBUFFERED=1
 pip install -q --break-system-packages pillow matplotlib 2>&1 | tail -1
 
-EP=250
-COMMON="--data data/seed1 --arch fsq_v2 --batch-size 64 --grad-weight 0.5 --loss-stack --lpips-weight 0 --cosine --ema 0.999 --epochs $EP"
+# Frame-cache makes each epoch ~39 unique-frame steps (fast/GPU-bound), so we can
+# afford many epochs to drive the loss down.
+EP=600
+COMMON="--data data/seed1 --arch fsq_v2 --batch-size 64 --grad-weight 0.5 --loss-stack --lpips-weight 0 --cosine --ema 0.999 --frame-cache --epochs $EP"
 
 echo "########## TRAIN L1  (EMA+cosine, hidden 64) ##########"
 python -m model.train_tokenizer $COMMON --hidden 64  --out ck_L1
