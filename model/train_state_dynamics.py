@@ -7,8 +7,8 @@ It de-risks the core question — can the net learn the driving dynamics? — wi
 multi-step rollout loss (feed predictions back, §0/§5 anti-drift structure), the
 same shape the pixel dynamics core uses.
 
-    node sim/headless/generate_state.js --seed 1 --steps 5000
-    python -m model.train_state_dynamics --data data/seed1_state --epochs 40
+    node sim/headless/generate.mjs --seed 1 --steps 5000
+    python -m model.train_state_dynamics --data data/seed1 --epochs 40
 
 --smoke runs a CPU random-tensor pass, no data needed.
 """
@@ -168,7 +168,7 @@ def dataset_state_stats(dataset, device):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--data", default="data/seed1_state")
+    p.add_argument("--data", default="data/seed1")
     p.add_argument("--out", default="checkpoints")
     p.add_argument("--epochs", type=int, default=40)
     p.add_argument("--batch-size", type=int, default=32)

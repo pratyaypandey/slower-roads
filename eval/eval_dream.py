@@ -8,7 +8,7 @@ stays coherent, the world model works; if it melts into noise after a few steps,
 that's drift, shown directly.
 
     CUDA_VISIBLE_DEVICES=7 python -m eval.eval_dream \
-        --data data/seed1_drive --tokenizer checkpoints/tokenizer.pt \
+        --data data/seed1 --tokenizer checkpoints/tokenizer.pt \
         --dynamics checkpoints/dynamics.pt --context 4 --steps 60
 
 Writes eval/plots/dream.gif (needs pillow). Also prints per-step pixel drift.
@@ -47,7 +47,7 @@ def action_id(a):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--data", default="data/seed1_drive")
+    p.add_argument("--data", default="data/seed1")
     p.add_argument("--tokenizer", default="checkpoints/tokenizer.pt")
     p.add_argument("--dynamics", default="checkpoints/dynamics.pt")
     p.add_argument("--start", type=int, default=100)

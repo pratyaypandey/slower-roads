@@ -33,7 +33,7 @@ def load_frames(data_dir, idxs):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--data", default="data/seed1_drive")
+    p.add_argument("--data", default="data/seed1")
     p.add_argument("--ckpt", default="checkpoints/tokenizer.pt")
     p.add_argument("--n", type=int, default=6, help="frames to show")
     p.add_argument("--out", default="eval/plots")

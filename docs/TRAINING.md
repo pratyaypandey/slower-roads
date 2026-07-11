@@ -1,8 +1,10 @@
 # Training the world model
 
 End-to-end runbook: from an empty repo to a world model you can watch dream.
-Everything runs without the native `gl` module — frames are rendered in pure
-numpy. See `docs/architecture.md` for the design contract.
+Data comes from the collaborator's sim (`sim/`): the headless core (state +
+λ-anchor skeleton) needs no GPU; pixel frames render through the sim's WebGL
+capture head. See `docs/architecture.md` for the design contract and
+`sim/API.md` / `plans/SIM.md` for the sim's own contract.
 
 ## The pipeline at a glance
 
@@ -109,28 +111,35 @@ python -c "import torch; print('sees GPU:', torch.cuda.is_available())"   # want
 On a shared box, pin to a free GPU (check `nvidia-smi` for one at low util) and
 prefix every training/eval command with `CUDA_VISIBLE_DEVICES=<n>`.
 
-## Step 0 — generate + render data (CPU, no gl)
+## Step 0 — generate data
+
+Two paths, depending on what you're training:
 
 ```bash
-# road-following drive: the car steers to stay on the road (renderable frames)
-node sim/headless/generate_drive.js --seed 1 --steps 3000
-# render each state to a (3,64,64) .npy frame -> a drop-in 'rgb' dataset
-python -m sim.render.render_manifest --data data/seed1_drive --size 64
+# Headless state + lambda-anchor skeleton dataset (CPU, no GPU/browser).
+# Autopilot keeps the car on the road; writes data/seed1/manifest.json.
+node sim/headless/generate.mjs --seed 1 --steps 3000
+
+# Pixel dataset (needs a GPU/browser — the sim renders via WebGL). Drives the
+# real renderer headlessly, captures 64px frames to .npy + adds them to the
+# manifest. Run on the GPU box.
+node sim/headless/generate_pixels.mjs --seed 1 --steps 3000 --size 64
 ```
 
-For a bigger/varied dataset, generate several seeds into separate dirs and
-render each; train on whichever `--data` dir you want.
+The state path trains `train_state_dynamics` today with no GPU. The pixel path
+feeds the tokenizer + AR/flow dynamics. For a bigger/varied dataset, generate
+several seeds into separate dirs and train on whichever `--data` dir you want.
 
 ## Step 1 — tokenizer (M1)
 
 ```bash
 CUDA_VISIBLE_DEVICES=7 python -m model.train_tokenizer \
-    --data data/seed1_drive --epochs 20 --out checkpoints
+    --data data/seed1 --epochs 20 --out checkpoints
 # -> checkpoints/tokenizer.pt   (watch recon_l1 fall)
 
 # eval: original vs FSQ reconstruction grid + codebook usage
 CUDA_VISIBLE_DEVICES=7 python -m eval.eval_tokenizer \
-    --data data/seed1_drive --ckpt checkpoints/tokenizer.pt
+    --data data/seed1 --ckpt checkpoints/tokenizer.pt
 # -> eval/plots/tokenizer_recon.png
 ```
 
@@ -142,13 +151,13 @@ usage = collapse, which a low loss on easy frames can hide).
 
 ```bash
 CUDA_VISIBLE_DEVICES=7 python -m model.train_dynamics \
-    --data data/seed1_drive --tokenizer checkpoints/tokenizer.pt \
+    --data data/seed1 --tokenizer checkpoints/tokenizer.pt \
     --epochs 20 --out checkpoints
 # -> checkpoints/dynamics.pt   (watch ce + pixel fall)
 
 # eval: THE payoff — a GIF of the model dreaming vs ground truth
 CUDA_VISIBLE_DEVICES=7 python -m eval.eval_dream \
-    --data data/seed1_drive --tokenizer checkpoints/tokenizer.pt \
+    --data data/seed1 --tokenizer checkpoints/tokenizer.pt \
     --dynamics checkpoints/dynamics.pt --steps 60
 # -> eval/plots/dream.gif   (left = ground truth, right = dreamed)
 ```
@@ -165,11 +174,11 @@ Both trainers checkpoint every epoch and take `--resume`. `--epochs` is the
 ```bash
 # tokenizer: trained 20, want 20 more (i.e. up to epoch 40)
 CUDA_VISIBLE_DEVICES=7 python -m model.train_tokenizer \
-    --data data/seed1_drive --resume checkpoints/tokenizer.pt --epochs 40
+    --data data/seed1 --resume checkpoints/tokenizer.pt --epochs 40
 
 # dynamics: same pattern (the frozen tokenizer is always loaded fresh via --tokenizer)
 CUDA_VISIBLE_DEVICES=7 python -m model.train_dynamics \
-    --data data/seed1_drive --tokenizer checkpoints/tokenizer.pt \
+    --data data/seed1 --tokenizer checkpoints/tokenizer.pt \
     --resume checkpoints/dynamics.pt --epochs 40
 ```
 
@@ -181,12 +190,11 @@ stopped (modulo dataloader shuffle order). If a run is interrupted, just
 
 ```bash
 conda activate slowroads
-node sim/headless/generate_drive.js --seed 1 --steps 3000
-python -m sim.render.render_manifest --data data/seed1_drive --size 64
-CUDA_VISIBLE_DEVICES=7 python -m model.train_tokenizer --data data/seed1_drive --epochs 20
-CUDA_VISIBLE_DEVICES=7 python -m eval.eval_tokenizer   --data data/seed1_drive --ckpt checkpoints/tokenizer.pt
-CUDA_VISIBLE_DEVICES=7 python -m model.train_dynamics  --data data/seed1_drive --tokenizer checkpoints/tokenizer.pt --epochs 20
-CUDA_VISIBLE_DEVICES=7 python -m eval.eval_dream       --data data/seed1_drive --tokenizer checkpoints/tokenizer.pt --dynamics checkpoints/dynamics.pt --steps 60
+node sim/headless/generate_pixels.mjs --seed 1 --steps 3000 --size 64   # pixels (needs GPU/browser)
+CUDA_VISIBLE_DEVICES=7 python -m model.train_tokenizer --data data/seed1 --epochs 20
+CUDA_VISIBLE_DEVICES=7 python -m eval.eval_tokenizer   --data data/seed1 --ckpt checkpoints/tokenizer.pt
+CUDA_VISIBLE_DEVICES=7 python -m model.train_dynamics  --data data/seed1 --tokenizer checkpoints/tokenizer.pt --epochs 20
+CUDA_VISIBLE_DEVICES=7 python -m eval.eval_dream       --data data/seed1 --tokenizer checkpoints/tokenizer.pt --dynamics checkpoints/dynamics.pt --steps 60
 ```
 
 ## Knobs worth touching

@@ -84,7 +84,7 @@ def ascii_paths(true_xz, pred_xz, width=64, height=24):
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--data", default="data/seed1_state")
+    p.add_argument("--data", default="data/seed1")
     p.add_argument("--ckpt", default="checkpoints/state_dynamics.pt")
     p.add_argument("--steps", type=int, default=200, help="rollout length to evaluate")
     p.add_argument("--start", type=int, default=100,

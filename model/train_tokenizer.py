@@ -2,9 +2,10 @@
 
 Reconstruction is per-frame, so this flattens the dataset's sequence windows
 into individual frames. Produces a checkpoint the dynamics stage (M2) loads and
-freezes. Run on a GPU box after generating a pixel dataset with the sim:
+freezes. Run on a GPU box after generating a pixel dataset with the sim's WebGL
+capture exporter (needs a browser/GPU):
 
-    cd sim && npm run gen -- --seed 1 --steps 2000 --res 64x64
+    node sim/headless/generate_pixels.mjs --seed 1 --steps 2000 --size 64
     python -m model.train_tokenizer --data data/seed1 --epochs 20
 
 CPU-shape-testable with --smoke (few random frames, no data needed).

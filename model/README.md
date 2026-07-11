@@ -72,13 +72,14 @@ python3 eval/test_drift.py
 
 ## Generate data
 
-There is no data on disk by default (headless `gl` isn't available everywhere).
-Produce a dataset from the sim:
+There is no data on disk by default. Produce a dataset from the sim:
 
 ```
-cd sim && npm install
-npm run gen -- --seed 1 --steps 300 --res 128x128
-# writes ../data/seed1/frames/*.png + manifest.json
+# headless state + lambda-anchor skeleton (no GPU):
+node sim/headless/generate.mjs --seed 1 --steps 3000
+# OR pixel frames (needs a GPU/browser — WebGL capture):
+node sim/headless/generate_pixels.mjs --seed 1 --steps 3000 --size 64
+# both write data/seed1/manifest.json
 ```
 
 Point the dataset at `data/seed1/manifest.json`. The manifest schema and the
