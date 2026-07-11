@@ -25,6 +25,7 @@ def _ensure_registered():
         return
     _LOADED = True
     import model.tokenizer.fsq_autoencoder  # noqa: F401  registers "fsq"
+    import model.tokenizer.fsq_v2            # noqa: F401  registers "fsq_v2" (research stack)
     import model.tokenizer.vit_tokenizer     # noqa: F401  registers "fsq_vit" (stub)
     import model.dynamics.ar_core            # noqa: F401  registers "ar_transformer"
     import model.dynamics.flow_bridge        # noqa: F401  registers "flow_bridge"
