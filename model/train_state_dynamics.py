@@ -47,16 +47,46 @@ class StateDynamics(nn.Module):
         return state + self.net(torch.cat([state, a], dim=-1))
 
 
-def rollout_loss(model, init_state, actions, target_states):
+def step_weights(H, mode, device):
+    # Per-step loss weights (Jai's feedback, fix 1). 'decay' downweights the
+    # noisy far-future terms for stability; 'increase' emphasizes long-horizon
+    # coherence (the product goal); 'flat' is uniform. Normalized to mean 1 so
+    # the overall loss scale is comparable across modes.
+    k = torch.arange(H, dtype=torch.float32, device=device)
+    if mode == "decay":
+        w = 0.9 ** k
+    elif mode == "increase":
+        w = 1.0 + k
+    else:
+        w = torch.ones(H, device=device)
+    return w / w.mean()
+
+
+def rollout_loss(model, init_state, actions, target_states,
+                 teacher_forcing=0.0, weight_mode="flat"):
     # init_state (B, STATE_DIM); actions (B, H); target_states (B, H, STATE_DIM).
-    # Roll H steps feeding predictions back, so the model is trained on its own
-    # trajectory rather than one-step teacher forcing.
+    # Roll H steps feeding predictions back, so the model trains on its own
+    # trajectory (anti-drift / anti-exposure-bias), not one-step teacher forcing.
+    #
+    # Jai's feedback on compounding error, both applied here:
+    #  - teacher_forcing in [0,1]: blend the fed-back state toward the ground
+    #    truth (scheduled sampling) to ground early training. Annealed to 0 by
+    #    the caller so inference-time free-running is still learned.
+    #  - weight_mode: per-step loss weighting (see step_weights).
+    H = actions.shape[1]
+    w = step_weights(H, weight_mode, init_state.device)
     state = init_state
     loss = init_state.new_zeros(())
-    for k in range(actions.shape[1]):
-        state = model(state, actions[:, k])
-        loss = loss + F.mse_loss(state, target_states[:, k])
-    return loss / actions.shape[1]
+    for k in range(H):
+        pred = model(state, actions[:, k])
+        loss = loss + w[k] * F.mse_loss(pred, target_states[:, k])
+        # Next input: the prediction, optionally pulled toward the target. At
+        # tf=0 this is pure free-running; at tf=1 it's full teacher forcing.
+        if teacher_forcing > 0.0:
+            state = (1 - teacher_forcing) * pred + teacher_forcing * target_states[:, k]
+        else:
+            state = pred
+    return loss / H
 
 
 def train(args):
@@ -70,9 +100,10 @@ def train(args):
         init = torch.randn(B, STATE_DIM, device=device)
         actions = torch.randint(0, NUM_ACTION_TOKENS, (B, H), device=device)
         targets = torch.randn(B, H, STATE_DIM, device=device)
-        loss = rollout_loss(model, init, actions, targets)
+        loss = rollout_loss(model, init, actions, targets,
+                            teacher_forcing=0.5, weight_mode="decay")
         loss.backward()
-        print(f"[smoke] rollout loss {loss.item():.4f} — OK")
+        print(f"[smoke] rollout loss {loss.item():.4f} (tf=0.5, decay) — OK")
         return
 
     dataset = SimSequenceDataset(
@@ -91,20 +122,28 @@ def train(args):
 
     os.makedirs(args.out, exist_ok=True)
     for epoch in range(args.epochs):
+        # Anneal teacher forcing from tf_start -> 0 linearly across training, so
+        # early epochs are grounded (stable) and late epochs are free-running
+        # (learns to self-correct, matching inference). Constant grounding would
+        # just trade instability for exposure-bias drift.
+        frac = epoch / max(1, args.epochs - 1)
+        tf = args.tf_start * (1 - frac)
         running = 0.0
         for item in loader:
             # context=1, so the last context state is the rollout's start.
             init = ((item["context_state"][:, -1].float().to(device)) - mean) / std
             actions = item["target_actions"].to(device)
             targets = (item["target_state"].float().to(device) - mean) / std
-            loss = rollout_loss(model, init, actions, targets)
+            loss = rollout_loss(model, init, actions, targets,
+                                teacher_forcing=tf, weight_mode=args.weight_mode)
             opt.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), args.grad_clip)
             opt.step()
             running += loss.item()
         avg = running / max(1, len(loader))
-        print(f"epoch {epoch + 1}/{args.epochs}  rollout_mse {avg:.5f}  rmse {math.sqrt(avg):.4f}")
+        print(f"epoch {epoch + 1}/{args.epochs}  rollout_mse {avg:.5f}  "
+              f"rmse {math.sqrt(avg):.4f}  tf {tf:.2f}")
 
     ckpt = os.path.join(args.out, "state_dynamics.pt")
     torch.save({"model": model.state_dict(), "hidden": args.hidden,
@@ -137,6 +176,11 @@ def main():
     p.add_argument("--hidden", type=int, default=128)
     p.add_argument("--horizon", type=int, default=8)
     p.add_argument("--grad-clip", type=float, default=1.0, dest="grad_clip")
+    p.add_argument("--tf-start", type=float, default=0.5, dest="tf_start",
+                   help="initial teacher-forcing ratio, annealed to 0 (0 = pure free-run)")
+    p.add_argument("--weight-mode", choices=["flat", "decay", "increase"],
+                   default="flat", dest="weight_mode",
+                   help="per-step rollout loss weighting")
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--smoke", action="store_true")
     train(p.parse_args())
