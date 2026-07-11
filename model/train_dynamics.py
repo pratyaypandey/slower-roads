@@ -90,8 +90,20 @@ def train(args):
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
 
+    # Resume: reload dynamics model + optimizer + epoch (the tokenizer is always
+    # loaded fresh and frozen, so it's not part of the resume state).
+    start_epoch = 0
+    if args.resume:
+        prev = torch.load(args.resume, map_location=device)
+        model.load_state_dict(prev["model"])
+        if "opt" in prev:
+            opt.load_state_dict(prev["opt"])
+        start_epoch = prev.get("epoch", 0)
+        print(f"resumed from {args.resume} at epoch {start_epoch}")
+
+    ckpt = os.path.join(args.out, "dynamics.pt")
     os.makedirs(args.out, exist_ok=True)
-    for epoch in range(args.epochs):
+    for epoch in range(start_epoch, args.epochs):
         run_ce = run_px = 0.0
         for item in loader:
             ctx_frames = item["context_frames"].float().to(device)
@@ -114,9 +126,9 @@ def train(args):
             run_px += parts["pixel"].item()
         n = max(1, len(loader))
         print(f"epoch {epoch + 1}/{args.epochs}  ce {run_ce / n:.4f}  pixel {run_px / n:.4f}")
-
-    ckpt = os.path.join(args.out, "dynamics.pt")
-    torch.save({"model": model.state_dict()}, ckpt)
+        # Checkpoint every epoch so long runs survive interruption + resume.
+        torch.save({"model": model.state_dict(), "opt": opt.state_dict(),
+                    "epoch": epoch + 1}, ckpt)
     print(f"saved {ckpt}")
 
 
@@ -135,6 +147,7 @@ def main():
     p.add_argument("--n-layers", type=int, default=4, dest="n_layers")
     p.add_argument("--ce-weight", type=float, default=1.0, dest="ce_weight")
     p.add_argument("--pixel-weight", type=float, default=1.0, dest="pixel_weight")
+    p.add_argument("--resume", default=None, help="checkpoint to continue training from")
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--smoke", action="store_true", help="tiny random-tensor pass, no data")
     train(p.parse_args())

@@ -54,9 +54,20 @@ def train(args):
     loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True, drop_last=True)
     opt = torch.optim.Adam(model.parameters(), lr=args.lr)
 
+    # Resume: reload model + optimizer + epoch so --epochs is a total, and
+    # training picks up where the checkpoint left off.
+    start_epoch = 0
+    if args.resume:
+        prev = torch.load(args.resume, map_location=device)
+        model.load_state_dict(prev["model"])
+        if "opt" in prev:
+            opt.load_state_dict(prev["opt"])
+        start_epoch = prev.get("epoch", 0)
+        print(f"resumed from {args.resume} at epoch {start_epoch}")
+
+    ckpt = os.path.join(args.out, "tokenizer.pt")
     os.makedirs(args.out, exist_ok=True)
-    step = 0
-    for epoch in range(args.epochs):
+    for epoch in range(start_epoch, args.epochs):
         running = 0.0
         for item in loader:
             frames = frames_from_batch(item).to(device)
@@ -66,12 +77,11 @@ def train(args):
             loss.backward()
             opt.step()
             running += loss.item()
-            step += 1
         avg = running / max(1, len(loader))
         print(f"epoch {epoch + 1}/{args.epochs}  recon_{args.loss} {avg:.4f}")
-
-    ckpt = os.path.join(args.out, "tokenizer.pt")
-    torch.save({"model": model.state_dict(), "hidden": args.hidden}, ckpt)
+        # Checkpoint every epoch so a long run is resumable if interrupted.
+        torch.save({"model": model.state_dict(), "hidden": args.hidden,
+                    "opt": opt.state_dict(), "epoch": epoch + 1}, ckpt)
     print(f"saved {ckpt}")
 
 
@@ -86,6 +96,7 @@ def main():
     p.add_argument("--loss", choices=["l1", "mse"], default="l1")
     p.add_argument("--context", type=int, default=4)
     p.add_argument("--horizon", type=int, default=6)
+    p.add_argument("--resume", default=None, help="checkpoint to continue training from")
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--smoke", action="store_true", help="tiny random-tensor pass, no data")
     train(p.parse_args())
