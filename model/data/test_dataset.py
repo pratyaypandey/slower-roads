@@ -30,9 +30,11 @@ def _fabricate(tmp, n_samples, size=8, with_frames=True):
         if with_frames:
             np.save(os.path.join(tmp, rel), np.full((size, size, 3), i, dtype=np.uint8))
         action = None if i == 0 else {
-            "throttle": 0.8, "brake": 0.0, "steer": -1.0 + 2.0 * (i % 3) / 2.0,
+            "steer": -1.0 + 2.0 * (i % 3) / 2.0, "throttle": 0.8,
         }
-        s = {"action": action, "state": {"x": float(i), "z": 0.0, "heading": 0.0, "speed": 0.3}}
+        # New sim nests the car pose under state.car; x encodes the sample index.
+        s = {"action": action,
+             "state": {"car": {"x": float(i), "z": 0.0, "heading": 0.0, "speed": 0.3}}}
         if with_frames:
             s = {"frame": rel, **s}
         samples.append(s)
@@ -57,14 +59,15 @@ def test_window_count():
 
 
 def test_action_tokenizer():
-    # 9-bucket scheme (§3): ti*3 + si, in [0,9); null -> neutral coast+straight.
+    # {steer, throttle} in [-1,1] -> si*THROTTLE_BUCKETS + ti, in [0,9).
+    # Neutral (straight + coast) is the center bucket (si=1,ti=1) -> 4.
     assert ds.tokenize_action(None) == ds.NEUTRAL_ACTION_TOKEN == 4
-    assert ds.tokenize_action({"throttle": 1.0, "brake": 0.0, "steer": 1.0}) == 8   # ti=2,si=2
-    assert ds.tokenize_action({"throttle": 0.0, "brake": 1.0, "steer": -1.0}) == 0  # ti=0,si=0
-    assert ds.tokenize_action({"throttle": 0.5, "brake": 0.5, "steer": 0.0}) == 4   # ti=1,si=1
-    toks = {ds.tokenize_action({"throttle": t, "brake": 0.0, "steer": s})
-            for t in (0.0, 0.5, 1.0) for s in (-1.0, 0.0, 1.0)}
-    assert toks <= set(range(ds.ACTION_VOCAB))
+    assert ds.tokenize_action({"steer": 1.0, "throttle": 1.0}) == 8    # si=2,ti=2
+    assert ds.tokenize_action({"steer": -1.0, "throttle": -1.0}) == 0  # si=0,ti=0
+    assert ds.tokenize_action({"steer": 0.0, "throttle": 0.0}) == 4    # si=1,ti=1
+    toks = {ds.tokenize_action({"steer": s, "throttle": t})
+            for t in (-1.0, 0.0, 1.0) for s in (-1.0, 0.0, 1.0)}
+    assert toks == set(range(ds.ACTION_VOCAB))  # all 9 reachable
     print("ok  action tokenizer 9-bucket range")
 
 

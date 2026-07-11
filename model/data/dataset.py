@@ -30,18 +30,21 @@ except ImportError:  # torch is optional here; the numpy assembly path stands al
     torch = None
 
 
-# --- action tokenization (architecture.md §3) -------------------------------
-NEUTRAL_ACTION_TOKEN = _tokenize_action(0.0, 0.0, 0.0)  # coast + straight (ti=1, si=1)
+# --- action tokenization -----------------------------------------------------
+# The sim's action is {steer, throttle}, both in [-1,1] (throttle < 0 = brake).
+NEUTRAL_ACTION_TOKEN = _tokenize_action(0.0, 0.0)  # straight + coast (center bucket)
 
 
 def tokenize_action(action):
-    """{throttle,brake,steer} -> int in [0, 9). None -> neutral token."""
+    """{steer, throttle} -> int in [0, NUM_ACTION_TOKENS). None -> neutral."""
     if action is None:
         return NEUTRAL_ACTION_TOKEN
-    return _tokenize_action(action["throttle"], action["brake"], action["steer"])
+    return _tokenize_action(action["steer"], action["throttle"])
 
 
 # --- manifest + windowing (torch-free) --------------------------------------
+# The sim's state nests the car pose under state.car; pull the same 4-vector the
+# state-space dynamics model uses. heading/speed live there alongside x/z.
 STATE_KEYS = ("x", "z", "heading", "speed")
 
 
@@ -98,7 +101,9 @@ def _load_frame_array(path, size):
 
 
 def _state_vector(state):
-    return np.array([state[k] for k in STATE_KEYS], dtype=np.float32)
+    # New sim nests the car pose under state["car"].
+    car = state["car"]
+    return np.array([car[k] for k in STATE_KEYS], dtype=np.float32)
 
 
 def assemble_item(manifest, manifest_dir, ctx_start, context, horizon,

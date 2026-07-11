@@ -39,10 +39,10 @@ def load_frames(data_dir, start, n):
 
 
 def action_id(a):
-    from model.dynamics.config import tokenize_action
+    from model.dynamics.config import tokenize_action, NUM_ACTION_TOKENS
     if a is None:
-        return 4  # neutral (coast+straight)
-    return tokenize_action(a["throttle"], a["brake"], a["steer"])
+        return NUM_ACTION_TOKENS // 2  # neutral (straight + coast, center bucket)
+    return tokenize_action(a["steer"], a["throttle"])
 
 
 def main():

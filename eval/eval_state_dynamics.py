@@ -32,12 +32,13 @@ from eval.drift import latent_drift
 def load_drive(data_dir):
     manifest = json.load(open(os.path.join(data_dir, "manifest.json")))
     samples = manifest["samples"]
+    # New sim nests the car pose under state.car.
     states = np.array(
-        [[s["state"][k] for k in STATE_KEYS] for s in samples], dtype=np.float32
+        [[s["state"]["car"][k] for k in STATE_KEYS] for s in samples], dtype=np.float32
     )
     # samples[0].action is null; action i drives state i-1 -> state i.
     actions = np.array(
-        [tokenize_action(s["action"]["throttle"], s["action"]["brake"], s["action"]["steer"])
+        [tokenize_action(s["action"]["steer"], s["action"]["throttle"])
          for s in samples[1:]],
         dtype=np.int64,
     )

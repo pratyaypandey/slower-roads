@@ -63,16 +63,17 @@ def logic_tests():
     ok &= check("TOKENS_PER_FRAME == G*G == 64",
                 TOKENS_PER_FRAME == G * G == 64)
 
-    # Action bucketing (§3): 9 tokens, correct corners.
-    seen = {tokenize_action(t, b, s)
-            for t in (0.0, 0.5, 1.0) for b in (0.0, 1.0) for s in (-1.0, 0.0, 1.0)}
+    # Action bucketing: {steer, throttle} in [-1,1] -> si*THROTTLE_BUCKETS + ti.
+    seen = {tokenize_action(s, t)
+            for s in (-1.0, 0.0, 1.0) for t in (-1.0, 0.0, 1.0)}
     ok &= check("action tokens within [0,9)", all(0 <= a < 9 for a in seen))
-    ok &= check("full throttle straight -> ti=2,si=1 -> 7",
-                tokenize_action(1.0, 0.0, 0.0) == 7)
-    ok &= check("full brake hard-left -> ti=0,si=0 -> 0",
-                tokenize_action(0.0, 1.0, -1.0) == 0)
-    ok &= check("coast full-right -> ti=1,si=2 -> 5",
-                tokenize_action(0.0, 0.0, 1.0) == 5)
+    ok &= check("all 9 (steer,throttle) buckets reachable", seen == set(range(9)))
+    ok &= check("straight + coast -> center bucket 4",
+                tokenize_action(0.0, 0.0) == 4)
+    ok &= check("hard-right + full throttle -> si=2,ti=2 -> 8",
+                tokenize_action(1.0, 1.0) == 8)
+    ok &= check("hard-left + full brake -> si=0,ti=0 -> 0",
+                tokenize_action(-1.0, -1.0) == 0)
 
     # Sequence interleaving layout (§4): [u_t, z_t[0..63]] per step, flattened.
     T = 3

@@ -15,15 +15,24 @@ G = 8                         # latent grid side -> G*G tokens per frame
 
 TOKENS_PER_FRAME = G * G                 # 64 visual tokens per frame
 NUM_VISUAL_TOKENS = prod(LEVELS)         # 12800 visual code indices
-NUM_ACTION_TOKENS = 9                    # §3: 3 longitudinal * 3 lateral buckets
+
+# The new sim's action is {steer, throttle}, both continuous in [-1,1] (throttle
+# < 0 = brake). For the AR token stream we discretize into a STEER x THROTTLE
+# grid; keeping 3x3 leaves NUM_ACTION_TOKENS = 9 so the vocab layout is unchanged.
+# (A continuous-conditioning dynamics variant is a clean future ablation — it
+# would consume the raw 2-vector instead of a token, via the registry.)
+STEER_BUCKETS = 3
+THROTTLE_BUCKETS = 3
+NUM_ACTION_TOKENS = STEER_BUCKETS * THROTTLE_BUCKETS
 VOCAB_SIZE = NUM_VISUAL_TOKENS + NUM_ACTION_TOKENS
 
 # One frame step in the flattened sequence is [u_t, z_t[0..TOKENS_PER_FRAME-1]].
 FRAME_STRIDE = 1 + TOKENS_PER_FRAME      # 65
 
-# Action bucket edges (§3).
-LONGITUDINAL_EDGES = [-1.0, -0.33, 0.33, 1.0]   # over (throttle - brake)
-LATERAL_EDGES = [-1.0, -0.5, 0.5, 1.0]          # over steer
+# Bucket edges over [-1,1] for each continuous action channel. Ascending
+# boundaries defining len-1 buckets; the middle bucket brackets ~zero.
+STEER_EDGES = [-1.0, -0.33, 0.33, 1.0]
+THROTTLE_EDGES = [-1.0, -0.33, 0.33, 1.0]
 
 
 def bucket(value, edges):
@@ -36,11 +45,12 @@ def bucket(value, edges):
     return min(idx, len(edges) - 2)
 
 
-def tokenize_action(throttle, brake, steer):
-    """Discrete action token in [0, NUM_ACTION_TOKENS) per §3."""
-    ti = bucket(throttle - brake, LONGITUDINAL_EDGES)   # 3 longitudinal buckets
-    si = bucket(steer, LATERAL_EDGES)                   # 3 lateral buckets
-    return ti * 3 + si
+def tokenize_action(steer, throttle):
+    """Discrete action token in [0, NUM_ACTION_TOKENS) for the sim's
+    {steer, throttle} action (both in [-1,1])."""
+    si = bucket(steer, STEER_EDGES)
+    ti = bucket(throttle, THROTTLE_EDGES)
+    return si * THROTTLE_BUCKETS + ti
 
 
 def action_to_token_id(action_id):
