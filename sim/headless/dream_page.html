@@ -51,6 +51,9 @@
         const near = sim.road.nearest(pose.x, pose.z, sim.carD);
         sim.carD = near.d;
         if (_contextLost) throw new Error("WebGL context lost mid-capture — frames would be blank. Use CPU rendering (default) instead of SLOWSIM_GL=gpu.");
+        // Advance the chase camera to follow the (dreamed) car pose we just set,
+        // else the camera stays frozen at origin and the car drives off-screen.
+        renderer.stepCamera(sim, sim.dt);
         renderer.render(sim, 0);
         frames.push(toBase64(renderer.capture(size)));
         // Yield to the event loop between captures so the sustained ReadPixels
