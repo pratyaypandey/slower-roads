@@ -15,12 +15,19 @@ sim/            deterministic Three.js driving sim + oracle harness  (M0, JS)
   headless/       data-gen (pixels via gl; state-only with no deps) + determinism proof
   browser/        live WASD driving (vite)
 model/          the world-model side  (PyTorch, CPU/numpy-verifiable)
-  tokenizer/      FSQ autoencoder + FSQ-variants study (Task 2)
-  dynamics/       AR transformer core + multi-step rollout loss (Task 1)
+  tokenizer/      FSQ autoencoder (fsq_v2) + FSQ-variants study
+  dynamics/       AR transformer core + multi-step rollout loss
   data/           Dataset over sim manifests (rgb | state | both)
-eval/           drift metric vs the oracle
-docs/           architecture.md — the shapes/tokens/loss contract (Task 3)
+eval/           tokenizer/dream evals + A/B experiment scripts + serve.py
+deploy/         serving the model — RunPod (RUNPOD_SERVE.md) + Modal (modal_serve.py)
+scripts/        orchestration (run_overnight.sh — the shared-tokenizer sweep)
+docs/           architecture, TRAINING, tokenizer research, VAE_RECIPE (the tokenizer recipe)
+plans/          M0 design specs (SIM.md, SIM_UPGRADE.md)
 ```
+
+Key docs: `docs/VAE_RECIPE.md` (how the shipped tokenizer was built + the A/B
+experiments), `docs/architecture.md` (the shapes/tokens/loss contract), and
+`deploy/` for running the model off RunPod or Modal.
 
 ## Run it
 

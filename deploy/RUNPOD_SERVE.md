@@ -17,7 +17,7 @@ Mounts at `/workspace`. Contents under `/workspace/sr/`:
 | `models/exp_L1_hidden64_ema_cosine_600ep.pt` | training-only ablation (L1 0.0022) |
 | `model/ eval/ headless/` | code (tokenizer, `eval/serve.py`, sim capture) |
 | `data/seed1/` | 2501 eval frames + manifest |
-| `VAE_RECIPE.md` | the recipe + experiment addendum |
+| `VAE_RECIPE.md` | the recipe + experiment addendum (repo: `docs/VAE_RECIPE.md`) |
 
 Because the volume is in EU-CZ-1, **pods that attach it must be in EU-CZ-1** (that DC has
 3090/4090). The network volume requires **secure cloud**.

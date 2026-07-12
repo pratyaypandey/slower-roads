@@ -3,8 +3,9 @@
 # dataset + tokenizer), then sweeps dynamics variants so you wake up to a
 # side-by-side comparison: one dream GIF + drift log per experiment.
 #
-#   GPU=4 bash run_overnight.sh
-#   GPU=4 STEPS=6000 EXPERIMENTS="baseline tf_sched flow_bridge" bash run_overnight.sh
+#   Run from the repo root (paths below are root-relative):
+#   GPU=4 bash scripts/run_overnight.sh
+#   GPU=4 STEPS=6000 EXPERIMENTS="baseline tf_sched flow_bridge" bash scripts/run_overnight.sh
 #
 # Each experiment writes:
 #   checkpoints/<name>/dynamics.pt
