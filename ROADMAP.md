@@ -120,9 +120,12 @@ seed5=val, **seed2=pristine held-out test**), context 8, dropout+weight-decay. R
 held-out seed: teacher-forced token-accuracy **0.567** (was 0.06), coherent 60-frame drives
 (`eval/plots/dream_tf.gif`), **beats the frozen-persistence baseline by +0.0112 free-run
 (~14× the pre-campaign model)** and beats copy on the strict bar. **Honest gap:** action/steering
-response is weak — forcing left vs right yields near-identical dreams (`eval/plots/steering.gif`);
-needs stronger action conditioning (a concrete next step) before "responds correctly to steering"
-is met. Also load-bearing: judge world models against baselines (persistence/frozen), not
+response is weak — forcing left vs right yields near-identical dreams (`eval/plots/steering.gif`).
+Strong action conditioning (`--action-cond`, action injected at every frame position) was
+implemented + retrained but did **not** materially help (sensitivity 0.0036 vs 0.0030 baseline).
+Diagnosis: the weakness is largely *intrinsic* — next-frame prediction is dominated by the
+visual context (heading/curvature), so the action's single-frame effect is tiny. Strong steering
+needs a longer-horizon counterfactual objective or M5's CAA amplification, not just conditioning. Also load-bearing: judge world models against baselines (persistence/frozen), not
 absolute drift; and inference uses a *bounded* context window (unbounded prefix melts via RoPE
 OOD — the eval default, and how M4's real-time KV cache runs).
 

@@ -33,7 +33,7 @@ image = (
 vol = modal.Volume.from_name("sr-models")
 
 
-@app.function(image=image, gpu="A10G", volumes={"/models": vol}, timeout=6 * 60 * 60)
+@app.function(image=image, gpu="A100", volumes={"/models": vol}, timeout=6 * 60 * 60)
 def train(argv: list[str]):
     """Run model.train_dynamics.main with data + checkpoint paths on the volume.
 

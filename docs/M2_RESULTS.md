@@ -84,16 +84,32 @@ under-weights the single action token per 257-token frame. (Actions *do* matter 
 teacher forcing — token-acc 0.567 includes correctly predicting the road curving with the
 true actions — it's the counterfactual free-run response that's weak.)
 
-**Fix implemented — strong action conditioning** (`--action-cond`, backward-compatible):
-a separate action embedding added to *every* position of the frame it drives, threaded
-through `forward` / `generate_frame` (KV-cache) / `rollout_loss` / `prepare_batch`
+**Tried — strong action conditioning** (`--action-cond`, backward-compatible): a separate
+action embedding added to *every* position of the frame it drives, threaded through
+`forward` / `generate_frame` (KV-cache) / `rollout_loss` / `prepare_batch`
 (`model/dynamics/{ar_core,rollout_loss,sequence}.py`). Plus a momentum-robust directional
 steering metric in `eval/eval_steering.py` (action sensitivity + road-centroid shift).
-Validated end-to-end locally. **Retrain in progress** on 10 seeds; at an early (epoch-3,
-undertrained) checkpoint the sensitivity is marginally up (0.0092 vs 0.0072 on a hard
-left/right test) — inconclusive until the run finishes (it trained unexpectedly slowly).
-Certifying the steering improvement is the one open M2 item. (CAA-based steering *dials*
-are separately M5.)
+Validated end-to-end and retrained on 10 seeds (A100). **Result: it did NOT materially move
+steering.** At a well-trained checkpoint (val CE 12.5, free-run still beats frozen by
++0.0057) the action sensitivity is 0.0036 vs the baseline's 0.0030 — within noise; the
+road-centroid shift stays ~0.
+
+**Diagnosis — the weak steering is largely intrinsic, not a conditioning-strength problem.**
+Next-frame prediction is dominated by the *visual context*, which already encodes the car's
+heading and the road's curvature; the commanded action's marginal effect on the immediate
+next frame is tiny (the road barely moves per frame). So the model predicts the next frame
+well from context alone and down-weights the action however strongly it's injected — the
+counterfactual "what if I'd steered differently" only diverges over *many* steps, by which
+point free-run drift dominates. (The action still matters *cumulatively* — teacher-forced
+token-acc 0.567 comes from following the true action sequence — it's the short-horizon
+counterfactual response that's small.)
+
+**Real paths to strong steering** (future work, beyond M2's core): (a) train with an explicit
+counterfactual / action-sensitivity objective over longer horizons so the action effect is
+rewarded; (b) M5's CAA steering-vector approach, which *amplifies* an action/attribute
+direction at inference rather than relying on it emerging from next-token prediction. The
+`--action-cond` path stays in the codebase (off by default) as the conditioning substrate
+those build on.
 
 ## Infrastructure built this campaign
 
