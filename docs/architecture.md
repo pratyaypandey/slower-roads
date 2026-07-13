@@ -42,7 +42,7 @@ Forcing, ROADMAP M3).
 | `T` | context frames | — |
 | `H` | rollout horizon (frames predicted before loss) | e.g. 4–8 |
 | `frame` | RGB observation | `(B,3,64,64)` uint8→float in [0,1] |
-| `G` | latent grid side | `8` (so 8×8 = 64 tokens/frame) |
+| `G` | latent grid side | `16` (so 16×16 = 256 tokens/frame; was 8 → bumped at M1 to keep small detail like the car) |
 | `C` | FSQ channels per token | `len(levels)`, e.g. 4–6 |
 | `L` | FSQ levels per channel | e.g. `[8,8,8,5,5]` |
 | `z` | latent code indices | `(B,T,G*G)` int64 in `[0, prod(L))` |
@@ -51,9 +51,9 @@ Forcing, ROADMAP M3).
 | `u` | action token | `(B,T)` int64, small vocab |
 | `V` | total token vocab | `prod(L)` visual + action tokens + specials |
 
-**Resolution 64×64 and grid 8×8 are provisional** and, per ROADMAP §3, must be
-set from the 33 ms frame budget at M1 — not from fidelity. They're fixed here
-only so components share a shape while we prototype.
+**Resolution 64×64 and grid 16×16 are provisional** and, per ROADMAP §3, must be
+set from the 33 ms frame budget — not from fidelity. The grid was raised 8×8→16×16
+at M1 (256 tokens/frame) because 8×8 dropped the car; revisit against the budget.
 
 ---
 

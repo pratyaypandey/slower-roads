@@ -9,13 +9,24 @@ layout definition in one place (and out of a training script that eval imported)
 
 import torch
 
-from model.dynamics.config import NUM_VISUAL_TOKENS
+from model.dynamics.config import NUM_VISUAL_TOKENS, FRAME_STRIDE
 
 
 def action_to_vocab(action_ids):
     """Map action ids [0, NUM_ACTION_TOKENS) into the shared vocab, above the
     visual codes. Works on any tensor shape."""
     return action_ids + NUM_VISUAL_TOKENS
+
+
+def frame_cond_ids(action_ids):
+    """Per-position action-conditioning ids for a frame-aligned sequence.
+
+    action_ids: (B, T) the action driving each frame. Returns (B, T*FRAME_STRIDE)
+    with each frame's action repeated across its whole [u_t, z_t...] block — so the
+    strong action-conditioning path can add the action to *every* position of the
+    frame it drives (not just the one action token, which the core under-weights).
+    """
+    return action_ids.repeat_interleave(FRAME_STRIDE, dim=1)
 
 
 def build_context(action_ids_ctx, visual_ctx):

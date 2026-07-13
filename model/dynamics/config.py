@@ -29,7 +29,7 @@ NUM_ACTION_TOKENS = STEER_BUCKETS * THROTTLE_BUCKETS
 VOCAB_SIZE = NUM_VISUAL_TOKENS + NUM_ACTION_TOKENS
 
 # One frame step in the flattened sequence is [u_t, z_t[0..TOKENS_PER_FRAME-1]].
-FRAME_STRIDE = 1 + TOKENS_PER_FRAME      # 65
+FRAME_STRIDE = 1 + TOKENS_PER_FRAME      # 257 = 1 action + 256 visual (G=16)
 
 # Bucket edges over [-1,1] for each continuous action channel. Ascending
 # boundaries defining len-1 buckets; the middle bucket brackets ~zero.
