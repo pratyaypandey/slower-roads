@@ -28,7 +28,7 @@ predictions or truth back — see `--tf-start` in train_dynamics).
        │                                   │
        └──────────────┬────────────────────┘
                       ▼
-        interleave [a_0,z_0(64), a_1,z_1(64), ...]
+        interleave [a_0,z_0(256), a_1,z_1(256), ...]
                       │
                       ▼
         ┌─────────────────────────────┐
@@ -61,7 +61,7 @@ appears — small errors compound because nothing pulls the state back to truth.
         ┌───────────────────────────────────────────────┘
         ▼
   ┌─────────────────────────────┐   ẑ_{t+1}      ┌──────────────────┐  x̂_{t+1}
-  │  AR dynamics (KV-cached)     │──64 tokens────▶│ FSQ decoder      │────────▶ screen
+  │  AR dynamics (KV-cached)     │──256 tokens───▶│ FSQ decoder      │────────▶ screen
   │  + action a_t               │                │ (FROZEN)         │
   └─────────────────────────────┘                └──────────────────┘
         ▲                                                │
@@ -74,10 +74,10 @@ appears — small errors compound because nothing pulls the state back to truth.
 Two networks, trained in sequence:
 
 - **Tokenizer (M1)** — a convolutional autoencoder with an FSQ bottleneck
-  (~0.86M params). Compresses each 64×64 frame to 64 discrete tokens and decodes
+  compresses each 64×64 frame to 256 discrete tokens (16×16 grid) and decodes
   them back. Trained first, then **frozen**.
-- **Dynamics core (M2)** — a causal Transformer (~9.85M params) over the
-  interleaved sequence `[a_0, z_0(64 tokens), a_1, z_1, ...]`. Predicts the next
+- **Dynamics core (M2)** — a causal Transformer (~9.72M params) over the
+  interleaved sequence `[a_0, z_0(256 tokens), a_1, z_1, ...]`. Predicts the next
   frame's tokens from the past. Trained on the frozen tokenizer's latents with a
   multi-step rollout loss (token cross-entropy + decoded-pixel loss).
 
@@ -87,11 +87,11 @@ tokenizer's decoder turns them into pixels — the model "dreams" frame by frame
 ```
         MODULE               PARAMS   INPUT              OUTPUT
   ┌────────────────────┐
-  │ FSQ encoder        │    ~0.40M   (B,3,64,64) frame   (B,64,5) continuous
-  │ FSQ quantize       │      0       (B,64,5)           (B,64) code indices
-  │ FSQ decoder        │    ~0.46M   (B,64) indices      (B,3,64,64) frame
+  │ FSQ encoder        │             (B,3,64,64) frame   (B,256,5) continuous
+  │ FSQ quantize       │      0       (B,256,5)          (B,256) code indices
+  │ FSQ decoder        │             (B,256) indices     (B,3,64,64) frame
   ├────────────────────┤
-  │ AR dynamics        │    ~9.85M   (B, T*65) tokens    (B, T*65, 12809) logits
+  │ AR dynamics        │    ~9.72M   (B, T*257) tokens   (B, T*257, 12809) logits
   │  (embed + N blocks │            [a,z,a,z,...]        next-token distribution
   │   + head, KV-cache)│
   └────────────────────┘

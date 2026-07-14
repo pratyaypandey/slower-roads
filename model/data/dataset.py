@@ -54,14 +54,23 @@ def load_manifest(manifest_path):
     return manifest, os.path.dirname(os.path.abspath(manifest_path))
 
 
-def window_indices(n_samples, context, horizon):
+def window_indices(n_samples, context, horizon, sample_range=None):
     """Start indices whose [context | horizon] window fits inside the sequence.
 
     A window at start s covers context samples s..s+T-1 and target samples
     s+T..s+T+H-1, so targets are exactly the H samples after the context.
+
+    sample_range=(lo, hi) restricts windows to lie *entirely* within samples
+    [lo, hi): a start s is kept only if s >= lo and s+context+horizon-1 <= hi-1.
+    This is how a train/val split holds out a contiguous slice of one trajectory
+    without any window straddling the boundary (leakage-free — see the trainer's
+    val split). Default None = the whole sequence.
     """
-    last_start = n_samples - context - horizon
-    return list(range(last_start + 1)) if last_start >= 0 else []
+    lo, hi = (0, n_samples) if sample_range is None else sample_range
+    lo = max(0, lo)
+    hi = min(n_samples, hi)
+    last_start = hi - context - horizon  # inclusive last start within [lo, hi)
+    return [s for s in range(lo, last_start + 1)] if last_start >= lo else []
 
 
 # --- frame / state loading (torch-free) -------------------------------------
@@ -107,10 +116,15 @@ def _state_vector(state):
 
 
 def assemble_item(manifest, manifest_dir, ctx_start, context, horizon,
-                  representation, frame_size):
-    """Build one training item as plain numpy arrays (see module docstring)."""
+                  representation, frame_size, latents=None):
+    """Build one training item as plain numpy arrays (see module docstring).
+
+    representation='latent' yields precomputed token windows (context_tokens,
+    target_tokens) from `latents` (N, tokens) instead of frames — the cache path
+    that skips the tokenizer at train time."""
     want_rgb = representation in ("rgb", "both")
     want_state = representation in ("state", "both")
+    want_latent = representation == "latent"
     samples = manifest["samples"]
     ctx = range(ctx_start, ctx_start + context)
     tgt = range(ctx_start + context, ctx_start + context + horizon)
@@ -139,6 +153,9 @@ def assemble_item(manifest, manifest_dir, ctx_start, context, horizon,
     if want_state:
         item["context_state"] = np.stack([_state_vector(samples[i]["state"]) for i in ctx])
         item["target_state"] = np.stack([_state_vector(samples[i]["state"]) for i in tgt])
+    if want_latent:
+        item["context_tokens"] = latents[list(ctx)].astype(np.int64)   # (T, tokens)
+        item["target_tokens"] = latents[list(tgt)].astype(np.int64)    # (H, tokens)
     return item
 
 
@@ -153,15 +170,20 @@ class SimSequenceDataset(_DatasetBase):
     """
 
     def __init__(self, manifest_path, context, horizon, representation="rgb",
-                 frame_size=64):
-        if representation not in ("rgb", "state", "both"):
+                 frame_size=64, sample_range=None, latents_path=None):
+        if representation not in ("rgb", "state", "both", "latent"):
             raise ValueError(f"unknown representation {representation!r}")
         self.manifest, self.manifest_dir = load_manifest(manifest_path)
         self.context = context
         self.horizon = horizon
         self.representation = representation
         self.frame_size = frame_size
-        self._starts = window_indices(len(self.manifest["samples"]), context, horizon)
+        # sample_range=(lo, hi) restricts to a contiguous slice of the trajectory
+        # (train/val split); None = all samples.
+        self.sample_range = sample_range
+        self._starts = window_indices(
+            len(self.manifest["samples"]), context, horizon, sample_range
+        )
 
         if representation in ("rgb", "both"):
             if any("frame" not in s for s in self.manifest["samples"]):
@@ -169,6 +191,20 @@ class SimSequenceDataset(_DatasetBase):
                     f"representation {representation!r} needs frames, but this "
                     "manifest has none (state-only export)"
                 )
+        # Latent cache: precomputed token indices (N, tokens) aligned 1:1 with the
+        # manifest samples. Default path is <manifest_dir>/latents.npy.
+        self.latents = None
+        if representation == "latent":
+            path = latents_path or os.path.join(self.manifest_dir, "latents.npy")
+            if not os.path.exists(path):
+                raise ValueError(
+                    f"representation 'latent' needs precomputed {path} "
+                    "(run model.precompute_latents)")
+            self.latents = np.load(path)
+            if len(self.latents) != len(self.manifest["samples"]):
+                raise ValueError(
+                    f"latents ({len(self.latents)}) and manifest samples "
+                    f"({len(self.manifest['samples'])}) length mismatch at {path}")
 
     def __len__(self):
         return len(self._starts)
@@ -177,6 +213,7 @@ class SimSequenceDataset(_DatasetBase):
         item = assemble_item(
             self.manifest, self.manifest_dir, self._starts[idx],
             self.context, self.horizon, self.representation, self.frame_size,
+            latents=self.latents,
         )
         if torch is None:
             return item

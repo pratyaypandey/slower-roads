@@ -34,18 +34,27 @@ def frames_from_batch(item):
     return frames.reshape(-1, *frames.shape[2:]).float()
 
 
-def load_all_frames(data_dir, device):
-    """Load every unique frame once into a single (N,3,64,64) device tensor.
+def load_all_frames(data_dirs, device):
+    """Load every frame from one or more seed dirs into a (N,3,64,64) device tensor,
+    plus a boolean `has_next` mask (True where frame i+1 is the *same seed*'s
+    temporal successor). The mask is what the temporal-consistency loss consumes —
+    it must never pair the last frame of one seed with the first of the next.
 
-    Reconstruction training only needs individual frames, and the whole 2.5k-frame
-    seed set is ~137MB — so caching it on the GPU makes training compute-bound
-    instead of re-reading ~390 overlapping-window frames per step from disk. It
-    also fixes the 10x redundancy of flattening sequence windows.
+    Frames are cached on-device (the whole multi-seed set is a few hundred MB) so
+    training is compute-bound, not disk-bound.
     """
     import numpy as np
-    manifest = json.load(open(os.path.join(data_dir, "manifest.json")))
-    arrs = [np.load(os.path.join(data_dir, s["frame"])) for s in manifest["samples"]]
-    return torch.from_numpy(np.stack(arrs)).float().to(device)
+    if isinstance(data_dirs, str):
+        data_dirs = [data_dirs]
+    arrs, has_next = [], []
+    for d in data_dirs:
+        manifest = json.load(open(os.path.join(d, "manifest.json")))
+        samples = manifest["samples"]
+        for j, s in enumerate(samples):
+            arrs.append(np.load(os.path.join(d, s["frame"])))
+            has_next.append(j < len(samples) - 1)  # last frame of this seed has no successor
+    frames = torch.from_numpy(np.stack(arrs)).float().to(device)
+    return frames, torch.tensor(has_next, device=device)
 
 
 def train(args):
@@ -80,22 +89,33 @@ def train(args):
         print(f"[smoke] recon {recon.shape}, loss {loss.item():.4f} — OK")
         return
 
-    # Two data paths: a fast in-RAM frame cache (unique frames on the GPU, no
-    # DataLoader) or the sequence-window dataset. epoch_batches() yields (B,3,64,64)
-    # frame batches either way so the training loop below is identical.
+    # The temporal + noise consistency terms need consecutive-frame pairs, which
+    # only the in-RAM frame cache (frames in temporal order) provides — so the
+    # consistency objective requires --frame-cache. Each batch yields (x, x_next)
+    # where x_next is x's same-seed successor (x_next is None on the DataLoader path).
+    temporal_on = args.temporal_weight > 0
     if args.frame_cache:
-        all_frames = load_all_frames(args.data, device)
+        all_frames, has_next = load_all_frames(args.data, device)
         n = all_frames.shape[0]
+        pair_idx = torch.nonzero(has_next, as_tuple=False).squeeze(1)  # i's with a successor
         steps_per_epoch = max(1, n // args.batch_size)
-        print(f"frame cache: {n} frames on {device}, {steps_per_epoch} steps/epoch")
+        print(f"frame cache: {n} frames on {device} ({len(pair_idx)} consecutive pairs), "
+              f"{steps_per_epoch} steps/epoch")
 
         def epoch_batches():
-            perm = torch.randperm(n, device=device)
+            # Sample from frames that have a successor so (x, x_next) is always valid.
+            src = pair_idx if temporal_on else torch.arange(n, device=device)
+            perm = src[torch.randperm(len(src), device=device)]
             for i in range(steps_per_epoch):
-                yield all_frames[perm[i * args.batch_size:(i + 1) * args.batch_size]]
+                idx = perm[i * args.batch_size:(i + 1) * args.batch_size]
+                if len(idx) == 0:
+                    continue
+                yield all_frames[idx], (all_frames[idx + 1] if temporal_on else None)
     else:
+        if temporal_on:
+            raise SystemExit("--temporal-weight needs --frame-cache (temporal frame order)")
         dataset = SimSequenceDataset(
-            os.path.join(args.data, "manifest.json"),
+            os.path.join(args.data[0], "manifest.json"),
             context=args.context,
             horizon=args.horizon,
             representation="rgb",
@@ -105,7 +125,7 @@ def train(args):
 
         def epoch_batches():
             for item in loader:
-                yield frames_from_batch(item).to(device)
+                yield frames_from_batch(item).to(device), None
 
     opt = torch.optim.Adam(model.parameters(), lr=args.lr, betas=(0.9, 0.95))
 
@@ -123,25 +143,47 @@ def train(args):
     ema = {k: v.detach().clone() for k, v in model.state_dict().items()} if args.ema > 0 else None
 
     # Resume: reload model + optimizer + epoch so --epochs is a total, and
-    # training picks up where the checkpoint left off.
+    # training picks up where the checkpoint left off. --reset-epoch loads the
+    # *weights* but restarts the epoch counter at 0 — for fine-tuning a converged
+    # tokenizer under a NEW objective (the temporal/noise consistency retrain),
+    # where --epochs means "this many fresh epochs", not a global total.
     start_epoch = 0
     if args.resume:
         prev = torch.load(args.resume, map_location=device)
         model.load_state_dict(prev.get("model_raw", prev["model"]))
         if ema is not None and "model" in prev:
             ema = {k: v.detach().clone().to(device) for k, v in prev["model"].items()}
-        if "opt" in prev:
+        if "opt" in prev and not args.reset_epoch:
             opt.load_state_dict(prev["opt"])
-        start_epoch = prev.get("epoch", 0)
-        print(f"resumed from {args.resume} at epoch {start_epoch}")
+        start_epoch = 0 if args.reset_epoch else prev.get("epoch", 0)
+        print(f"resumed from {args.resume} "
+              f"({'weights only, fresh epochs' if args.reset_epoch else f'at epoch {start_epoch}'})")
 
     ckpt = os.path.join(args.out, "tokenizer.pt")
     os.makedirs(args.out, exist_ok=True)
     for epoch in range(start_epoch, args.epochs):
-        running = 0.0
-        for frames in epoch_batches():
-            recon, _, _ = model(frames)
-            loss = loss_fn(recon, frames)
+        running = {}
+        for frames, frames_next in epoch_batches():
+            recon, _, z = model(frames)                       # z = continuous pre-quant code
+            rec = loss_fn(recon, frames)
+            parts = {"rec": rec}
+            # Noise robustness: encoding must not flip codes under a tiny pixel
+            # perturbation (the measured failure: 1% noise flipped ~57% of tokens).
+            # Penalizing the pre-quant code change pushes the encoder off the FSQ
+            # quantization boundaries where flips happen.
+            if args.noise_weight > 0:
+                x_noisy = (frames + args.noise_std * torch.randn_like(frames)).clamp(0, 1)
+                z_noisy = model.encode(x_noisy)
+                parts["noise"] = args.noise_weight * (z - z_noisy).abs().mean()
+            # Temporal consistency: near-identical consecutive frames should get
+            # near-identical codes (the measured failure: 84% of tokens changed
+            # between frames that were 99.3% identical). Penalize the code change
+            # between successive frames; reconstruction still forces codes to move
+            # where content actually changes.
+            if frames_next is not None:
+                z_next = model.encode(frames_next)
+                parts["temporal"] = args.temporal_weight * (z - z_next).abs().mean()
+            loss = sum(parts.values())
             opt.zero_grad()
             loss.backward()
             opt.step()
@@ -154,11 +196,14 @@ def train(args):
                             ema[k].mul_(args.ema).add_(v.detach(), alpha=1 - args.ema)
                         else:
                             ema[k].copy_(v)
-            running += loss.item()
-        avg = running / max(1, steps_per_epoch)
+            for k, v in parts.items():
+                running[k] = running.get(k, 0.0) + v.item()
+        sp = max(1, steps_per_epoch)
+        avg = {k: running[k] / sp for k in running}
         label = "stack" if args.loss_stack else args.loss
         lr_now = opt.param_groups[0]["lr"]
-        print(f"epoch {epoch + 1}/{args.epochs}  loss_{label} {avg:.4f}  lr {lr_now:.2e}")
+        parts_str = "  ".join(f"{k} {avg[k]:.4f}" for k in avg)
+        print(f"epoch {epoch + 1}/{args.epochs}  {parts_str}  (rec={label})  lr {lr_now:.2e}")
         # Checkpoint every epoch so a long run is resumable if interrupted.
         # builder + cfg let registry.load_tokenizer rebuild any variant exactly.
         # Save the EMA weights as "model" when EMA is on (they eval better); keep
@@ -170,9 +215,10 @@ def train(args):
     print(f"saved {ckpt}")
 
 
-def main():
+def build_parser():
     p = argparse.ArgumentParser()
-    p.add_argument("--data", default="data/seed1")
+    p.add_argument("--data", nargs="+", default=["data/seed1"],
+                   help="one or more seed dirs (frames concatenated; temporal pairs stay in-seed)")
     p.add_argument("--arch", default="fsq", help="registered tokenizer name (default: fsq)")
     p.add_argument("--out", default="checkpoints")
     p.add_argument("--epochs", type=int, default=20)
@@ -193,12 +239,26 @@ def main():
     p.add_argument("--ema", type=float, default=0.0, help="weight-EMA decay (e.g. 0.999); 0 disables")
     p.add_argument("--frame-cache", action="store_true", dest="frame_cache",
                    help="load all unique frames into a GPU tensor (fast; skips the sequence dataset)")
+    # Temporal + noise consistency (fix the tokenizer's temporal instability that
+    # breaks M2 — see docs/M2_RESULTS.md). Weights are on the pre-quant code L1.
+    p.add_argument("--temporal-weight", type=float, default=0.0, dest="temporal_weight",
+                   help="penalize code change between consecutive frames (needs --frame-cache)")
+    p.add_argument("--noise-weight", type=float, default=0.0, dest="noise_weight",
+                   help="penalize code change under a small pixel perturbation")
+    p.add_argument("--noise-std", type=float, default=0.02, dest="noise_std",
+                   help="std of the pixel noise for the robustness term")
     p.add_argument("--context", type=int, default=4)
     p.add_argument("--horizon", type=int, default=6)
     p.add_argument("--resume", default=None, help="checkpoint to continue training from")
+    p.add_argument("--reset-epoch", action="store_true", dest="reset_epoch",
+                   help="on resume, load weights but restart epoch/opt at 0 (fine-tune a new objective)")
     p.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     p.add_argument("--smoke", action="store_true", help="tiny random-tensor pass, no data")
-    train(p.parse_args())
+    return p
+
+
+def main(argv=None):
+    train(build_parser().parse_args(argv))
 
 
 if __name__ == "__main__":

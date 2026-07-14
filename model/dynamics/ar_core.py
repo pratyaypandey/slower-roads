@@ -4,7 +4,8 @@ Interleaves action + visual tokens into one sequence and predicts the next
 token. One shared embedding table covers visual codes [0, NUM_VISUAL_TOKENS)
 and the 9 action tokens offset above them (§3). Exposes a residual-stream hook
 at every block so a steering direction can be injected (h <- h + alpha*v), and
-a KV-cached decode that generates the 64 visual tokens of the next frame.
+a KV-cached decode that generates the TOKENS_PER_FRAME (256) visual tokens of
+the next frame.
 """
 
 import torch
@@ -99,7 +100,7 @@ class SelfAttention(nn.Module):
 
 
 class Block(nn.Module):
-    def __init__(self, d_model, n_heads, d_ff):
+    def __init__(self, d_model, n_heads, d_ff, dropout=0.0):
         super().__init__()
         self.norm1 = nn.LayerNorm(d_model)
         self.attn = SelfAttention(d_model, n_heads)
@@ -107,10 +108,11 @@ class Block(nn.Module):
         self.mlp = nn.Sequential(
             nn.Linear(d_model, d_ff), nn.GELU(), nn.Linear(d_ff, d_model)
         )
+        self.drop = nn.Dropout(dropout)  # residual dropout (no params; eval() disables)
 
     def forward(self, x, cos, sin, kv_cache=None):
-        x = x + self.attn(self.norm1(x), cos, sin, kv_cache=kv_cache)
-        x = x + self.mlp(self.norm2(x))
+        x = x + self.drop(self.attn(self.norm1(x), cos, sin, kv_cache=kv_cache))
+        x = x + self.drop(self.mlp(self.norm2(x)))
         return x
 
 
@@ -118,14 +120,22 @@ class ARDynamics(nn.Module):
     """Small causal transformer over the interleaved action/visual vocab."""
 
     def __init__(self, d_model=256, n_heads=4, n_layers=4, d_ff=None,
-                 max_seq_len=32768, vocab_size=VOCAB_SIZE):
+                 max_seq_len=32768, vocab_size=VOCAB_SIZE, dropout=0.0,
+                 action_cond=False):
         super().__init__()
+        from model.dynamics.config import NUM_ACTION_TOKENS
         d_ff = d_ff or 4 * d_model
         self.d_model = d_model
         self.max_seq_len = max_seq_len
         self.embed = nn.Embedding(vocab_size, d_model)
+        self.embed_drop = nn.Dropout(dropout)
+        # Strong action conditioning: a separate embedding added to EVERY position
+        # of the frame an action drives (not just the lone action token, which the
+        # core under-weights → weak steering). Backward-compatible: off by default,
+        # so old checkpoints (no this table) still load.
+        self.action_cond = nn.Embedding(NUM_ACTION_TOKENS, d_model) if action_cond else None
         self.blocks = nn.ModuleList(
-            [Block(d_model, n_heads, d_ff) for _ in range(n_layers)]
+            [Block(d_model, n_heads, d_ff, dropout=dropout) for _ in range(n_layers)]
         )
         self.norm_f = nn.LayerNorm(d_model)
         self.head = nn.Linear(d_model, vocab_size, bias=False)
@@ -134,7 +144,8 @@ class ARDynamics(nn.Module):
         self.register_buffer("rope_cos", cos, persistent=False)
         self.register_buffer("rope_sin", sin, persistent=False)
 
-    def forward(self, tokens, return_hidden=False, steer=None, kv_caches=None):
+    def forward(self, tokens, return_hidden=False, steer=None, kv_caches=None,
+                cond_ids=None):
         """tokens: (B, T) int64 in [0, VOCAB_SIZE).
 
         return_hidden=True also returns the per-block residual streams (a list
@@ -145,7 +156,9 @@ class ARDynamics(nn.Module):
         kv_caches: optional list (len n_layers) of per-layer cache dicts for
                    incremental decode.
         """
-        x = self.embed(tokens)
+        x = self.embed_drop(self.embed(tokens))
+        if self.action_cond is not None and cond_ids is not None:
+            x = x + self.action_cond(cond_ids)          # per-position action conditioning
         hiddens = [x] if return_hidden else None
         for i, block in enumerate(self.blocks):
             cache = None if kv_caches is None else kv_caches[i]
@@ -192,14 +205,27 @@ class ARDynamics(nn.Module):
         caches = self.empty_kv_caches()
 
         u_t = (action_id + NUM_VISUAL_TOKENS).view(B, 1)  # offset into shared vocab
+        act_col = action_id.view(B, 1)                    # this frame's action-cond id
         if context_tokens is not None and context_tokens.shape[1] > 0:
             prefill = torch.cat([context_tokens, u_t], dim=1)
         else:
             prefill = u_t
 
+        # Action-conditioning ids for the prefill. The context is frame-aligned
+        # ([u,z,...] blocks of FRAME_STRIDE), so each frame's action is its block's
+        # first token; u_t (new frame) conditions on action_id.
+        cond = None
+        if self.action_cond is not None:
+            if context_tokens is not None and context_tokens.shape[1] > 0:
+                T = context_tokens.shape[1] // FRAME_STRIDE
+                ctx_actions = context_tokens.view(B, T, FRAME_STRIDE)[:, :, 0] - NUM_VISUAL_TOKENS
+                cond = torch.cat([ctx_actions.repeat_interleave(FRAME_STRIDE, dim=1), act_col], dim=1)
+            else:
+                cond = act_col
+
         # Prefill: run the whole prefix once, populating the cache. The final
         # position's logits predict the first visual token of the new frame.
-        logits = self.forward(prefill, steer=steer, kv_caches=caches)
+        logits = self.forward(prefill, steer=steer, kv_caches=caches, cond_ids=cond)
         next_logits = logits[:, -1, :]
 
         out = []
@@ -211,8 +237,10 @@ class ARDynamics(nn.Module):
             else:
                 tok = next_logits.argmax(dim=-1, keepdim=True)
             out.append(tok)
-            # Feed the just-generated token back through the cached decode.
-            logits = self.forward(tok, steer=steer, kv_caches=caches)
+            # Feed the just-generated token back; it belongs to this frame, so it
+            # conditions on the same action.
+            step_cond = act_col if self.action_cond is not None else None
+            logits = self.forward(tok, steer=steer, kv_caches=caches, cond_ids=step_cond)
             next_logits = logits[:, -1, :]
 
         return torch.cat(out, dim=1)
@@ -225,22 +253,37 @@ class ARDynamics(nn.Module):
     def prepare_batch(self, tokenizer, item, horizon, device,
                       ce_weight=1.0, pixel_weight=1.0, teacher_forcing=0.0):
         """Encode a dataset item into this core's token-sequence rollout inputs."""
-        from model.dynamics.sequence import build_context
+        from model.dynamics.sequence import build_context, frame_cond_ids
 
-        def encode(frames):
-            b, n = frames.shape[:2]
-            _, idx, _ = tokenizer(frames.reshape(b * n, *frames.shape[2:]))
-            return idx.reshape(b, n, TOKENS_PER_FRAME)
-
-        ctx_frames = item["context_frames"].float().to(device)
-        tgt_frames = item["target_frames"].float().to(device)
         ctx_actions = item["context_actions"].to(device)
         tgt_actions = item["target_actions"].to(device)
+
+        if "context_tokens" in item:
+            # Latent-cache path: the dataset already carries frozen-tokenizer token
+            # indices, so we skip the tokenizer forward entirely (the big speedup).
+            # No frames -> no decoded-pixel monitor (pixel_weight is forced to 0).
+            ctx_tokens = item["context_tokens"].to(device).long()   # (B, T, tok)
+            tgt_tokens = item["target_tokens"].to(device).long()    # (B, H, tok)
+            z_ctx = build_context(ctx_actions, ctx_tokens)
+            gt_frames = None
+            pixel_weight = 0.0
+        else:
+            def encode(frames):
+                b, n = frames.shape[:2]
+                _, idx, _ = tokenizer(frames.reshape(b * n, *frames.shape[2:]))
+                return idx.reshape(b, n, TOKENS_PER_FRAME)
+
+            ctx_frames = item["context_frames"].float().to(device)
+            gt_frames = item["target_frames"].float().to(device)
+            z_ctx = build_context(ctx_actions, encode(ctx_frames))
+            tgt_tokens = encode(gt_frames)
+
         return {
-            "z_ctx": build_context(ctx_actions, encode(ctx_frames)),
+            "z_ctx": z_ctx,
+            "cond_ctx": frame_cond_ids(ctx_actions),   # per-position action ids for the context
             "action_ids": tgt_actions,
-            "target_tokens": encode(tgt_frames),
-            "gt_frames": tgt_frames,
+            "target_tokens": tgt_tokens,
+            "gt_frames": gt_frames,
             "horizon": horizon,
             "ce_weight": ce_weight,
             "pixel_weight": pixel_weight,
@@ -259,12 +302,14 @@ class ARDynamics(nn.Module):
             ce_weight=batch.get("ce_weight", 1.0),
             pixel_weight=batch.get("pixel_weight", 1.0),
             teacher_forcing=batch.get("teacher_forcing", 0.0),
+            cond_ctx=batch.get("cond_ctx"),
         )
 
 
 @register_dynamics("ar_transformer")
-def _build_ar(d_model=256, n_heads=4, n_layers=4):
-    return ARDynamics(d_model=d_model, n_heads=n_heads, n_layers=n_layers)
+def _build_ar(d_model=256, n_heads=4, n_layers=4, dropout=0.0, action_cond=False):
+    return ARDynamics(d_model=d_model, n_heads=n_heads, n_layers=n_layers,
+                      dropout=dropout, action_cond=action_cond)
 
 
 if __name__ == "__main__":

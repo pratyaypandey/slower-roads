@@ -104,11 +104,30 @@ Each milestone is independently defensible. If a later one fails, the project st
 *Done when:* frames survive the latent round-trip with no visible degradation, at a grid size that leaves real-time headroom.
 
 ### M2 — Dynamics core (teacher-forced)
-- [ ] AR transformer over latent tokens + control vector
-- [ ] Next-token training loop, KV cache implemented
-- [ ] Coherent **short** rollout (a few seconds) under teacher forcing
+- [x] AR transformer over latent tokens + control vector
+- [x] Next-token training loop, KV cache implemented
+- [x] Coherent **short** rollout (a few seconds) under teacher forcing
 
 *Done when:* the model produces a coherent drivable short clip that responds correctly to steering input.
+
+*Status (2026-07-12):* **Coherence done; steering weak.** Full campaign — see `docs/M2_RESULTS.md`.
+The first pass looked certified on absolute drift but was **3× worse than a copy baseline**:
+root cause was the M1 tokenizer being *temporally unstable* (84% of tokens flip between
+99.3%-identical frames; 57% flip from 1% pixel noise). Fixed with temporal-consistency +
+noise-robustness losses (`train_tokenizer --temporal-weight/--noise-weight`): churn 84%→41%,
+noise-flip 57%→8%, recon still excellent. Retrained dynamics on **10 seeds** (latent cache,
+seed5=val, **seed2=pristine held-out test**), context 8, dropout+weight-decay. Result on the
+held-out seed: teacher-forced token-accuracy **0.567** (was 0.06), coherent 60-frame drives
+(`eval/plots/dream_tf.gif`), **beats the frozen-persistence baseline by +0.0112 free-run
+(~14× the pre-campaign model)** and beats copy on the strict bar. **Honest gap:** action/steering
+response is weak — forcing left vs right yields near-identical dreams (`eval/plots/steering.gif`).
+Strong action conditioning (`--action-cond`, action injected at every frame position) was
+implemented + retrained but did **not** materially help (sensitivity 0.0036 vs 0.0030 baseline).
+Diagnosis: the weakness is largely *intrinsic* — next-frame prediction is dominated by the
+visual context (heading/curvature), so the action's single-frame effect is tiny. Strong steering
+needs a longer-horizon counterfactual objective or M5's CAA amplification, not just conditioning. Also load-bearing: judge world models against baselines (persistence/frozen), not
+absolute drift; and inference uses a *bounded* context window (unbounded prefix melts via RoPE
+OOD — the eval default, and how M4's real-time KV cache runs).
 
 ### M3 — Anti-drift (the hard part; budget the most time here)
 - [ ] Diffusion Forcing / per-token noise levels in training
