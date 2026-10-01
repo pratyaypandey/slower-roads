@@ -179,7 +179,7 @@ def _state_vector(state):
 
 def assemble_item(manifest, manifest_dir, ctx_start, context, horizon,
                   representation, frame_size, latents=None, include_anchor=False,
-                  include_state=False):
+                  include_state=False, packed=None):
     """Build one training item as plain numpy arrays (see module docstring).
 
     representation='latent' yields precomputed token windows (context_tokens,
@@ -208,7 +208,11 @@ def assemble_item(manifest, manifest_dir, ctx_start, context, horizon,
             "target_start": ctx_start + context,
         },
     }
-    if want_rgb:
+    if want_rgb and packed is not None:   # (N,3,H,W) uint8 episode array (model/data/frames.py)
+        load = lambda i: _resize_chw(packed[i].astype(np.float32) / 255.0, frame_size)
+        item["context_frames"] = np.stack([load(i) for i in ctx])
+        item["target_frames"] = np.stack([load(i) for i in tgt])
+    elif want_rgb:
         item["context_frames"] = np.stack(
             [_load_frame_array(os.path.join(manifest_dir, samples[i]["frame"]), frame_size) for i in ctx]
         )
@@ -279,6 +283,12 @@ class SimSequenceDataset(_DatasetBase):
                     f"latents ({len(self.latents)}) and manifest samples "
                     f"({len(self.manifest['samples'])}) length mismatch at {path}")
 
+        # Packed uint8 frames (frames_u8.npy), memory-mapped, if the episode has them.
+        self.packed = None
+        packed_path = os.path.join(self.manifest_dir, "frames_u8.npy")
+        if representation in ("rgb", "both") and os.path.exists(packed_path):
+            self.packed = np.load(packed_path, mmap_mode="r")
+
     def __len__(self):
         return len(self._starts)
 
@@ -287,7 +297,7 @@ class SimSequenceDataset(_DatasetBase):
             self.manifest, self.manifest_dir, self._starts[idx],
             self.context, self.horizon, self.representation, self.frame_size,
             latents=self.latents, include_anchor=self.include_anchor,
-            include_state=self.include_state,
+            include_state=self.include_state, packed=self.packed,
         )
         if torch is None:
             return item

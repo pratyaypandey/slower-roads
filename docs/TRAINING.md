@@ -153,6 +153,39 @@ Each episode is a normal dataset, and `--data` takes several, e.g.
 `--data data/train_v2/ep*` (all of them) or `--data data/train_v2/ep*_cruise_*`
 (one profile).
 
+### v2 tokenizer on `train_v2` (renderer v2; replaces every earlier tokenizer)
+
+The pre-v2 tokenizers (`tokenizer.pt`, `tokenizer_tc.pt`) learned the old
+renderer. They collapse on v2 frames and were deleted. The workflow:
+
+```bash
+# 1. pack frames: per-frame float32 .npy -> one uint8 frames_u8.npy per episode (17 GB -> 3.7 GB, bit-exact)
+python -m model.data.frames pack data/train_v2/ep*
+# 2. hold out whole episodes (= world seeds) across all 5 profiles: last per profile -> test, previous -> val
+python -m model.data.frames split data/train_v2          # writes data/train_v2/split.json (80 / 5 / 5)
+# 3. upload only manifest.json + frames_u8.npy (hardlinked staging dir data/v2_upload/{train,val,test})
+export MODAL_PROFILE=slower-roads-m3
+modal volume put sr-v2-train data/v2_upload/train /data/train_v2   # + split.json
+modal volume put sr-v2-val   data/v2_upload/val   /data/train_v2
+modal volume put sr-v2-test  data/v2_upload/test  /data/train_v2
+# 4. train (A100, detached), eval on val, then precompute latents for all 90 episodes
+modal deploy deploy/modal_v2.py
+uv run --with modal python deploy/modal_v2.py spawn-tokenizer --epochs 20
+uv run --with modal python deploy/modal_v2.py spawn-eval --eval-split val
+uv run --with modal python deploy/modal_v2.py latents
+```
+
+All readers (`train_tokenizer --split`, `SimSequenceDataset`,
+`precompute_latents`, `eval_tokenizer`) go through `model/data/frames.py`. It
+prefers `frames_u8.npy` and falls back to per-frame files.
+
+`eval.eval_tokenizer --split data/train_v2/split.json:val` reports, per profile:
+- L1 / PSNR;
+- `flip`, the fraction of tokens that change between consecutive frames;
+- `flip_static`, the same on near-static pairs (this was the M2 root cause);
+- `flip_noise`, the flip rate under 1% pixel noise;
+- codebook usage and perplexity.
+
 ## Step 1 — tokenizer (M1)
 
 ```bash

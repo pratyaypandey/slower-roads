@@ -24,13 +24,11 @@ from model.registry import load_tokenizer
 
 
 def encode_seed(tok, data_dir, batch_size, device):
-    manifest = json.load(open(os.path.join(data_dir, "manifest.json")))
-    samples = manifest["samples"]
+    from model.data.frames import episode_frames
+    frames_u8 = episode_frames(data_dir)                    # packed or per-frame, uint8
     idxs = []
-    for i in range(0, len(samples), batch_size):
-        chunk = samples[i:i + batch_size]
-        frames = np.stack([np.load(os.path.join(data_dir, s["frame"])) for s in chunk])
-        x = torch.from_numpy(frames).float().to(device)
+    for i in range(0, len(frames_u8), batch_size):
+        x = torch.from_numpy(np.ascontiguousarray(frames_u8[i:i + batch_size])).to(device).float() / 255.0
         with torch.no_grad():
             _, tok_idx, _ = tok(x)
         idxs.append(tok_idx.cpu().numpy().astype(np.int32))

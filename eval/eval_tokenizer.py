@@ -1,103 +1,149 @@
-"""Show original vs. FSQ-reconstructed frames side by side, so a low recon loss
-can be trusted (or not) by eye — a tokenizer can score well by nailing the easy
-sky/ground split while smearing the road, which the loss alone won't reveal.
+"""Tokenizer evaluation: reconstruction, temporal stability, noise robustness,
+codebook use -- per driving profile, on held-out episodes.
 
-    CUDA_VISIBLE_DEVICES=7 python -m eval.eval_tokenizer \
-        --data data/seed1_drive --ckpt checkpoints/tokenizer.pt
+    python -m eval.eval_tokenizer --ckpt checkpoints/tokenizer_v2.pt \
+        --split data/train_v2/split.json:val --out eval/tokenizer_v2_val.json
+    python -m eval.eval_tokenizer --data data/seed1 --ckpt checkpoints/tokenizer.pt   # single dir
 
-Writes eval/plots/tokenizer_recon.png (a grid: top row originals, bottom row
-reconstructions) if matplotlib/PIL is available; always prints per-frame L1 and
-a codebook-usage number (how many of the 12800 codes the encoder actually uses —
-low usage means the tokenizer collapsed to a few codes).
+Metrics (all over every `--stride`-th frame of each episode):
+  l1 / psnr       pixel reconstruction vs the input frame
+  flip            fraction of the 256 tokens that change between consecutive frames
+  flip_static     same, only on near-static pairs (pixel L1 between the two input
+                  frames < --static-thresh). The M2 root cause was 84% of tokens
+                  flipping between 99.3%-identical frames; a stable tokenizer keeps
+                  this low, so dynamics sees change only where content changed.
+  flip_noise      fraction of tokens that flip under N(0, --noise-std) pixel noise
+  usage / perplexity   distinct codes used / exp(entropy) of the code histogram
+Also writes a recon grid PNG (one original/recon pair per episode).
 """
 
 import argparse
 import json
+import math
 import os
+from collections import defaultdict
 
 import numpy as np
 import torch
 
+from model.data.frames import episode_frames
 from model.registry import load_tokenizer
 
 
-def load_frames(data_dir, idxs):
-    manifest = json.load(open(os.path.join(data_dir, "manifest.json")))
-    samples = manifest["samples"]
-    frames = []
-    for i in idxs:
-        arr = np.load(os.path.join(data_dir, samples[i]["frame"]))
-        frames.append(arr)
-    return np.stack(frames)  # (N,3,H,W)
+def resolve(args):
+    if args.split:
+        path, _, name = args.split.partition(":")
+        root = os.path.dirname(os.path.abspath(path))
+        return [os.path.join(root, d) for d in json.load(open(path))[name or "val"]]
+    return args.data
 
 
-def main():
-    p = argparse.ArgumentParser()
-    p.add_argument("--data", default="data/seed1")
-    p.add_argument("--ckpt", default="checkpoints/tokenizer.pt")
-    p.add_argument("--n", type=int, default=6, help="frames to show")
-    p.add_argument("--out", default="eval/plots")
-    args = p.parse_args()
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model, _ = load_tokenizer(args.ckpt, default_cfg={"hidden": 64}, map_location=device)
-    model = model.to(device).eval()
-
-    manifest = json.load(open(os.path.join(args.data, "manifest.json")))
-    total = len(manifest["samples"])
-    idxs = np.linspace(0, total - 1, args.n).astype(int)
-    frames = torch.from_numpy(load_frames(args.data, idxs)).float().to(device)
-
-    with torch.no_grad():
-        recon, indices, _ = model(frames)
-
-    l1 = torch.abs(recon - frames).mean(dim=(1, 2, 3))
-    print("per-frame L1:", "  ".join(f"{v:.4f}" for v in l1.tolist()))
-
-    # Mean L1 over the WHOLE dataset — the single robust number to compare configs
-    # against (the 6-frame line above is just for the eyeball grid). Batched so a
-    # 2500-frame set fits in memory.
-    all_idx = np.arange(total)
-    tot, cnt = 0.0, 0
-    with torch.no_grad():
-        for i in range(0, total, 256):
-            fb = torch.from_numpy(load_frames(args.data, all_idx[i:i + 256])).float().to(device)
-            rb, _, _ = model(fb)
-            tot += torch.abs(rb - fb).sum().item()
-            cnt += fb.numel()
-    print(f"dataset mean L1: {tot / cnt:.5f}  (over {total} frames)")
-
-    # Codebook usage over a big sample: how many distinct codes appear? Low usage
-    # (a handful of the 12800) means the tokenizer collapsed and isn't really
-    # using its capacity — a failure the recon loss can hide on easy images.
-    big = torch.from_numpy(load_frames(args.data,
-        np.linspace(0, total - 1, min(200, total)).astype(int))).float().to(device)
-    with torch.no_grad():
-        _, big_idx, _ = model(big)
-    used = torch.unique(big_idx).numel()
-    print(f"codebook usage: {used} / {model.fsq.codebook_size} distinct codes "
-          f"({100 * used / model.fsq.codebook_size:.1f}%)")
-
+def profile_of(d):
     try:
-        import matplotlib
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-        os.makedirs(args.out, exist_ok=True)
-        n = len(idxs)
-        fig, ax = plt.subplots(2, n, figsize=(2 * n, 4.2))
-        for j in range(n):
-            ax[0, j].imshow(frames[j].cpu().permute(1, 2, 0).clamp(0, 1))
-            ax[0, j].set_title(f"orig {idxs[j]}", fontsize=8)
-            ax[1, j].imshow(recon[j].cpu().permute(1, 2, 0).clamp(0, 1))
-            ax[1, j].set_title(f"recon L1={l1[j]:.3f}", fontsize=8)
-            for a in (ax[0, j], ax[1, j]):
-                a.set_xticks([]); a.set_yticks([])
-        ax[0, 0].set_ylabel("original"); ax[1, 0].set_ylabel("FSQ recon")
-        path = os.path.join(args.out, "tokenizer_recon.png")
-        fig.tight_layout(); fig.savefig(path, dpi=110)
-        print(f"saved {path}")
-    except ImportError:
-        print("(matplotlib not installed — numbers above; pip install matplotlib for the grid)")
+        return json.load(open(os.path.join(d, "manifest.json"))).get("policy") or os.path.basename(d)
+    except (OSError, ValueError):
+        return os.path.basename(d)
+
+
+@torch.no_grad()
+def eval_episode(model, d, device, stride, batch, noise_std, static_thresh, gen):
+    fr = episode_frames(d)
+    idx = np.arange(0, len(fr), stride)
+    # consecutive pairs (i, i+1) at the true frame rate, sampled every `stride`
+    out = defaultdict(float)
+    n_frames = n_pairs = n_static = 0
+    codes = []
+    for s in range(0, len(idx), batch):
+        i = idx[s:s + batch]
+        i = i[i + 1 < len(fr)]
+        x = torch.from_numpy(np.ascontiguousarray(fr[i])).to(device).float() / 255
+        xn = torch.from_numpy(np.ascontiguousarray(fr[i + 1])).to(device).float() / 255
+        recon, tok, _ = model(x)
+        _, tok_n, _ = model(xn)
+        noisy = (x + noise_std * torch.randn(x.shape, generator=gen, device="cpu").to(device)).clamp(0, 1)
+        _, tok_noise, _ = model(noisy)
+        mse = ((recon - x) ** 2).mean(dim=(1, 2, 3))
+        out["l1"] += (recon - x).abs().mean(dim=(1, 2, 3)).sum().item()
+        out["psnr"] += (10 * torch.log10(1 / mse.clamp_min(1e-10))).sum().item()
+        flip = (tok != tok_n).float().mean(1)
+        static = (x - xn).abs().mean(dim=(1, 2, 3)) < static_thresh
+        out["flip"] += flip.sum().item()
+        out["flip_static"] += flip[static].sum().item()
+        out["flip_noise"] += (tok != tok_noise).float().mean(1).sum().item()
+        n_frames += len(i)
+        n_pairs += len(i)
+        n_static += int(static.sum())
+        codes.append(tok.flatten().cpu())
+    res = {"l1": out["l1"] / n_frames, "psnr": out["psnr"] / n_frames, "flip": out["flip"] / n_pairs,
+           "flip_static": out["flip_static"] / max(1, n_static), "static_pairs": n_static,
+           "flip_noise": out["flip_noise"] / n_frames, "frames": n_frames}
+    return res, torch.cat(codes)
+
+
+def usage_stats(codes, k):
+    h = torch.bincount(codes, minlength=k).float()
+    p = h[h > 0] / h.sum()
+    return int((h > 0).sum()), float(torch.exp(-(p * p.log()).sum()))
+
+
+@torch.no_grad()
+def grid(model, dirs, device, path):
+    from PIL import Image
+    tiles = []
+    for d in dirs:
+        fr = episode_frames(d)
+        x = torch.from_numpy(np.ascontiguousarray(fr[len(fr) // 2:len(fr) // 2 + 1])).to(device).float() / 255
+        r, _, _ = model(x)
+        pair = torch.cat([x[0], r[0].clamp(0, 1)], dim=1)                 # original above recon
+        tiles.append((pair.permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8))
+    im = Image.fromarray(np.concatenate(tiles, axis=1)).resize((len(tiles) * 192, 384), Image.NEAREST)
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    im.save(path)
+    return path
+
+
+def main(argv=None):
+    p = argparse.ArgumentParser()
+    p.add_argument("--data", nargs="+", default=["data/seed1"])
+    p.add_argument("--split", default=None, help="<split.json>:<name>, e.g. data/train_v2/split.json:val")
+    p.add_argument("--ckpt", default="checkpoints/tokenizer.pt")
+    p.add_argument("--stride", type=int, default=6)
+    p.add_argument("--batch", type=int, default=128)
+    p.add_argument("--noise-std", type=float, default=0.01)
+    p.add_argument("--static-thresh", type=float, default=0.01)
+    p.add_argument("--out", default=None, help="metrics JSON path (grid PNG written next to it)")
+    p.add_argument("--device", default="cuda" if torch.cuda.is_available() else
+                   ("mps" if torch.backends.mps.is_available() else "cpu"))
+    args = p.parse_args(argv)
+
+    device = torch.device(args.device)
+    model, _ = load_tokenizer(args.ckpt, default_cfg={"hidden": 64}, map_location="cpu")
+    model = model.to(device).eval()
+    dirs = resolve(args)
+    gen = torch.Generator().manual_seed(0)
+    per_ep, by_prof, all_codes = {}, defaultdict(list), []
+    for d in dirs:
+        r, codes = eval_episode(model, d, device, args.stride, args.batch, args.noise_std, args.static_thresh, gen)
+        r["usage"], r["perplexity"] = usage_stats(codes, model.codebook_size)
+        per_ep[os.path.basename(d)] = r
+        by_prof[profile_of(d)].append(r)
+        all_codes.append(codes)
+        print(f"{os.path.basename(d):32s} L1 {r['l1']:.4f}  PSNR {r['psnr']:.2f}  flip {r['flip']:.3f}  "
+              f"flip_static {r['flip_static']:.3f} (n={r['static_pairs']})  flip_noise {r['flip_noise']:.3f}  "
+              f"usage {r['usage']}", flush=True)
+    keys = ["l1", "psnr", "flip", "flip_static", "flip_noise"]
+    w = lambda rs, k: sum(r[k] * r["frames"] for r in rs) / sum(r["frames"] for r in rs)
+    summary = {k: w(list(per_ep.values()), k) for k in keys}
+    summary["usage"], summary["perplexity"] = usage_stats(torch.cat(all_codes), model.codebook_size)
+    profiles = {pr: {k: w(rs, k) for k in keys} for pr, rs in by_prof.items()}
+    print("overall:", "  ".join(f"{k} {v:.4f}" if isinstance(v, float) else f"{k} {v}" for k, v in summary.items()))
+    for pr, m in sorted(profiles.items()):
+        print(f"  {pr:14s}", "  ".join(f"{k} {v:.4f}" for k, v in m.items()))
+    if args.out:
+        os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
+        json.dump({"ckpt": args.ckpt, "dirs": [os.path.basename(d) for d in dirs], "summary": summary,
+                   "profiles": profiles, "episodes": per_ep, "codebook": model.codebook_size}, open(args.out, "w"), indent=1)
+        print("wrote", args.out, "and", grid(model, dirs, device, args.out.replace(".json", ".png")))
 
 
 if __name__ == "__main__":
