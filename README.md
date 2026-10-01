@@ -3,14 +3,21 @@
 An on-device, real-time, steerable driving world model. See `ROADMAP.md` for the
 full thesis and `docs/architecture.md` for the model interface contract.
 
-This branch (`sim/m0-driving-sim`) delivers **M0 (the sim + oracle)** and the
-**first-draft model side** (Tasks 1–3 from `jais_notes/notes.md`), built to be
-verified without a GPU and trained later on one.
+The repository now contains M0 (sim + oracle), the temporally stable M1 FSQ
+tokenizer, the short-horizon M2 dynamics model, and the active M3 anti-drift
+training/evaluation stack. See `docs/M2_RESULTS.md` and `docs/M3_RESULTS.md` for
+the measured status rather than relying on milestone checkboxes alone.
+
+Current M3 result: the skeleton anchor improves five-second rollouts but reverses
+at the 3,600-frame/two-minute gate. Attention telemetry and an output-only anchor
+ablation show that stale-frame attention concentration is a symptom, not the
+root cause; compact state/pose memory is the next architecture direction.
 
 ## What's here
 
 ```
-sim/            deterministic Three.js driving sim + oracle harness  (M0, JS)
+sim/            deterministic driving sim + oracle harness  (M0, JS)
+  render/         Three.js RGB head rebuilt to match Slow Roads footage (docs/FIDELITY.md)
   src/            renderer-agnostic core: prng, road, car, params, world, sim
   headless/       data-gen (pixels via gl; state-only with no deps) + determinism proof
   browser/        live WASD driving (vite)
@@ -65,8 +72,9 @@ Then generate data with the sim (`npm run gen`) and wire the training loop per
 | 3. Architecture pseudocode | **Done.** `docs/architecture.md`, incl. the Schrödinger-bridge flow branch. |
 
 ## Verified vs. still needs your machine
-- **Verified here (no GPU):** sim determinism; sim geometry against real three.js;
+- **Verified locally and on Modal GPUs:** sim determinism; sim geometry against real three.js;
   FSQ quantizer math (exact over all 12800 codes); action-tokenizer agreement across
-  components; dataset tuple alignment; drift metric; the FSQ study's numbers.
-- **Needs your box:** actual pixel rendering (browser + `gl` data-gen); the
-  torch-tensor assertions and any real training.
+  components; dataset tuple alignment; drift metric; torch shape/learning tests;
+  A10/A100 M3 training and exact bounded-KV evaluation through 3,600 frames.
+- **Still open:** real-time on-device budgeting and an M3 architecture that remains
+  better than frozen persistence for the full two-minute rollout.

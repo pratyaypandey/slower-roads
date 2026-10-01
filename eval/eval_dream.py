@@ -31,6 +31,7 @@ import torch
 from model.registry import load_tokenizer, load_dynamics
 from model.dynamics.config import NUM_VISUAL_TOKENS, TOKENS_PER_FRAME, FRAME_STRIDE
 from model.dynamics.sequence import build_context, action_to_vocab
+from model.data.dataset import action_driving_frame
 from eval.drift import pixel_drift
 
 
@@ -40,8 +41,8 @@ def load_frames(data_dir, start, n):
     frames, actions = [], []
     for i in range(start, start + n):
         frames.append(np.load(os.path.join(data_dir, samples[i]["frame"])))
-        a = samples[i]["action"]
-        actions.append(a)  # may be None for i==0
+        # Frame i was produced by sample i-1's outgoing action.
+        actions.append(action_driving_frame(samples, i))
     return np.stack(frames), actions, manifest
 
 
@@ -95,7 +96,7 @@ def main():
 
         dreamed, token_acc = [], []
         for k in range(H):
-            a = act_ids[T + k - 1].view(1)                    # action driving this step
+            a = act_ids[T + k].view(1)                        # action driving target frame
             vis = dyn.generate_frame(prefix, a)               # (1, TOKENS_PER_FRAME) predicted
             frame_hat = tok.decode_indices(vis)               # (1,3,64,64)
             dreamed.append(frame_hat.squeeze(0).cpu())

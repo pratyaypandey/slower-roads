@@ -88,11 +88,43 @@ def test_tuple_alignment():
                 assert item["target_frames"][j].shape == (3, 8, 8)
                 assert np.allclose(item["target_frames"][j], expected_idx / 255.0), (k, j)
                 assert item["target_state"][j][0] == float(expected_idx)  # x == index
+                # sample i stores the action that drives i -> i+1, so target
+                # frame expected_idx must use the previous sample's action.
+                assert item["target_actions"][j] == ds.tokenize_action(
+                    data.manifest["samples"][expected_idx - 1]["action"]
+                )
             # context frame i is sample cs+i; last context frame is right before first target.
             for i in range(context):
                 assert np.allclose(item["context_frames"][i], (cs + i) / 255.0)
+                frame_idx = cs + i
+                expected_action = None if frame_idx == 0 else data.manifest["samples"][frame_idx - 1]["action"]
+                assert item["context_actions"][i] == ds.tokenize_action(expected_action)
             assert item["meta"]["target_start"] == item["meta"]["ctx_end"] + 1
         print(f"ok  tuple alignment: {len(data)} items, targets == samples[i+1..i+H]")
+
+
+def test_action_alignment_catches_one_step_shift():
+    """Alternating actions make an i vs i-1 bug impossible to hide."""
+    with tempfile.TemporaryDirectory() as tmp:
+        path = _fabricate(tmp, n_samples=12)
+        manifest = json.load(open(path))
+        for i, sample in enumerate(manifest["samples"]):
+            sample["action"] = {"steer": -1.0 if i % 2 == 0 else 1.0, "throttle": 1.0}
+        with open(path, "w") as f:
+            json.dump(manifest, f)
+        item = ds.SimSequenceDataset(path, 3, 4, representation="rgb", frame_size=8)[0]
+        target_start = 3
+        expected = [
+            ds.tokenize_action(manifest["samples"][i - 1]["action"])
+            for i in range(target_start, target_start + 4)
+        ]
+        shifted_wrong = [
+            ds.tokenize_action(manifest["samples"][i]["action"])
+            for i in range(target_start, target_start + 4)
+        ]
+        assert item["target_actions"].tolist() == expected
+        assert expected != shifted_wrong
+        print("ok  action/frame alignment uses transition i-1 -> frame i")
 
 
 def test_representations():
@@ -122,10 +154,31 @@ def test_state_only_manifest():
             raise AssertionError("expected ValueError for rgb on state-only manifest")
 
 
+def test_anchor_grid():
+    skeleton = {
+        "road": [
+            {"forward": 0, "lateral": 0, "headingDelta": 0, "curvature": 0, "grade": 0},
+            {"forward": 140, "lateral": 10, "headingDelta": 0.2, "curvature": 0.01, "grade": 0.02},
+        ],
+        "width": 9,
+        "car": {"speed": 12, "slip": 0.1, "grounded": True},
+        "env": {"fog": 0.4, "rain": 0.2, "snow": 0, "timeOfDay": 1.2,
+                "biomeX": 0.7, "biomeY": 0.3},
+    }
+    a = ds.anchor_grid(skeleton)
+    assert a.shape == (ds.ANCHOR_CHANNELS, 16, 16)
+    assert np.isfinite(a).all()
+    assert a[0].sum() > 0 and a[1].sum() == 2
+    assert np.allclose(a[9], 0.4)
+    print("ok  skeleton -> 16x16 anchor grid")
+
+
 if __name__ == "__main__":
     test_window_count()
     test_action_tokenizer()
     test_tuple_alignment()
+    test_action_alignment_catches_one_step_shift()
     test_representations()
     test_state_only_manifest()
+    test_anchor_grid()
     print("\nall dataset tests passed")

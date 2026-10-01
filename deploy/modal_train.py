@@ -1,27 +1,28 @@
-"""Train the M2 dynamics core on Modal — the GPU counterpart to modal_serve.py.
+"""Train and evaluate M3 on Modal.
 
 Same shape as the tokenizer server: the image + GPU + storage are code, and the
 job runs on demand with per-second billing (no pod to leave running). The
-frozen tokenizer + the training data live on the Modal Volume `sr-models`; the
+frozen tokenizer + the training data live on the Modal Volume `sr-m3-train`; the
 run writes dynamics.pt / dynamics_best.pt / dynamics_metrics.jsonl back to it.
 
   # one-time: push the dataset (tokenizer.pt is already on the volume)
-  modal volume put sr-models data/seed1 /data/seed1
+  modal volume put sr-m3-train data/seed1 /data/seed1
 
   modal run deploy/modal_train.py                      # train with defaults
   modal run deploy/modal_train.py --epochs 80 --batch-size 32
   modal run deploy/modal_train.py --extra "--tf-start 0.5 --n-layers 6"
 
   # pull results back
-  modal volume get sr-models /checkpoints/dynamics_best.pt      checkpoints/
-  modal volume get sr-models /checkpoints/dynamics_metrics.jsonl checkpoints/
+  modal volume get sr-m3-train /checkpoints/dynamics_best.pt      checkpoints/
+  modal volume get sr-m3-train /checkpoints/dynamics_metrics.jsonl checkpoints/
 
-Workspace: slower-roads. Volume: sr-models (same store as the tokenizer).
+Workspace/profile: slower-roads-m3. Train Volume: sr-m3-train.
 """
 
+import os
 import modal
 
-app = modal.App("sr-dynamics")
+app = modal.App("sr-m3")
 
 # Image is code, not a Dockerfile: base + deps + the local packages the trainer
 # and evals import. Mirrors modal_serve.py; adds pillow for the eval GIFs.
@@ -30,16 +31,27 @@ image = (
     .pip_install("torch", "numpy", "pillow")
     .add_local_python_source("model", "eval")
 )
-vol = modal.Volume.from_name("sr-models")
+TRAIN_VOLUME = os.environ.get("SR_MODAL_TRAIN_VOLUME", "sr-m3-train")
+TEST_VOLUME = os.environ.get("SR_MODAL_TEST_VOLUME", "sr-m3-test")
+VAL_VOLUME = os.environ.get("SR_MODAL_VAL_VOLUME", "sr-m3-val")
+vol = modal.Volume.from_name(TRAIN_VOLUME)
+test_vol = modal.Volume.from_name(TEST_VOLUME)
+val_vol = modal.Volume.from_name(VAL_VOLUME)
 
 
-@app.function(image=image, gpu="A100", volumes={"/models": vol}, timeout=6 * 60 * 60)
+@app.function(image=image, gpu="A100-80GB", volumes={"/models": vol}, timeout=6 * 60 * 60)
 def train(argv: list[str]):
     """Run model.train_dynamics.main with data + checkpoint paths on the volume.
 
-    The core is ~10M params over ~2.5k-token sequences, so an A10G is ample and
-    cheaper than an A100 — bump the gpu= above only if throughput demands it.
+    Context-8 multi-step rollout training re-forwards a growing ~3.6k-token
+    sequence (context+horizon) with autograd retained across the horizon, so peak
+    memory is large and the variable per-step length fragments the CUDA caching
+    allocator over a full epoch. Run on an 80GB A100 with expandable_segments to
+    avoid the fragmentation OOM that killed the 40GB run mid-epoch. Eval/smoke
+    stay on A10G.
     """
+    import os
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     import torch
     from model.train_dynamics import main
 
@@ -54,7 +66,39 @@ def train(argv: list[str]):
 
     main(argv, on_epoch_end=commit)
     vol.commit()
-    print("committed checkpoints to volume sr-models")
+    print(f"committed checkpoints to volume {TRAIN_VOLUME}")
+
+
+@app.function(image=image, gpu="A10G", timeout=30 * 60)
+def smoke_m3():
+    """GPU smoke of corrected actions, exact self-rollout, and λ conditioning."""
+    import torch
+    from model.train_dynamics import main
+
+    print("cuda:", torch.cuda.is_available(), torch.cuda.get_device_name(0))
+    main([
+        "--smoke", "--device", "cuda", "--context", "2", "--horizon", "2",
+        "--d-model", "64", "--n-layers", "2", "--n-heads", "4",
+        "--anchor-cond", "--self-rollout", "--corruption-cond",
+        "--corruption-min", "0.1", "--corruption-max", "0.2",
+        "--attention-recency-bias", "0.05",
+        "--mem-cross-attn", "--mem-tokens", "16", "--state-head", "--state-weight", "0.5",
+    ])
+    return {"ok": True, "device": torch.cuda.get_device_name(0)}
+
+
+@app.function(
+    image=image, gpu="A100",
+    volumes={"/models": vol, "/test": test_vol, "/val": val_vol},
+    timeout=6 * 60 * 60,
+)
+def evaluate_m3(argv: list[str]):
+    # Long-horizon eval is a single-sequence sequential decode (3,600 frames x 256
+    # tokens), so it is latency-bound; an A100 roughly halves the ~1 h A10G run.
+    from eval.eval_m3 import main
+
+    main(argv)
+    vol.commit()
 
 
 @app.function(image=image, gpu="A10G", volumes={"/models": vol}, timeout=6 * 60 * 60)
@@ -71,6 +115,19 @@ def train_tok(argv: list[str]):
     main(argv)
     vol.commit()
     print("committed tokenizer to volume sr-models")
+
+
+@app.function(image=image, gpu="A10G",
+              volumes={"/models": vol, "/val": val_vol, "/test": test_vol},
+              timeout=60 * 60)
+def steering_eval(argv: list[str]):
+    """Re-measure action responsiveness (left-vs-right dream divergence) with the
+    corrected action/frame contract. Reads RGB frames from the val/test oracle
+    volumes (the train volume keeps only latents), writes the GIF back."""
+    from eval.eval_steering import main
+
+    main(argv)
+    vol.commit()
 
 
 @app.function(image=image, gpu="A10G", volumes={"/models": vol}, timeout=60 * 60)
@@ -145,3 +202,41 @@ def main(epochs: int = 40, batch_size: int = 16, lr: float = 3e-4,
     argv += extra.split()
     print("launching:", " ".join(argv))
     train.remote(argv)
+
+
+@app.local_entrypoint()
+def smoke():
+    print(smoke_m3.remote())
+
+
+@app.local_entrypoint()
+def steering(data: str = "/val/seed5",
+             tokenizer: str = "/models/checkpoints/tokenizer_tc.pt",
+             dynamics: str = "/models/checkpoints_m3_corrected/dynamics_best.pt",
+             context: int = 8, steps: int = 30, window: int = 8,
+             out: str = "/models/eval/steering"):
+    argv = ["--data", data, "--tokenizer", tokenizer, "--dynamics", dynamics,
+            "--context", str(context), "--steps", str(steps), "--window", str(window),
+            "--out", out]
+    steering_eval.remote(argv)
+
+
+@app.local_entrypoint()
+def m3_eval(data: str = "/test/seed2",
+            tokenizer: str = "/models/checkpoints/tokenizer_tc.pt",
+            dynamics: str = "/models/checkpoints_m3/dynamics_best.pt",
+            starts: str = "100", horizons: str = "30,150,300",
+            lambdas: str = "0,0.25,0.5,0.75,1",
+            context: int = 8, window: int = 8,
+            attention_every: int = 0,
+            progress_every: int = 300,
+            out: str = "/models/eval/m3_metrics.json"):
+    argv = [
+        "--data", data, "--tokenizer", tokenizer, "--dynamics", dynamics,
+        "--starts", starts, "--horizons", horizons, "--lambdas", lambdas,
+        "--context", str(context), "--window", str(window),
+        "--attention-every", str(attention_every),
+        "--progress-every", str(progress_every),
+        "--out", out,
+    ]
+    evaluate_m3.remote(argv)

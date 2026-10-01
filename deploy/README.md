@@ -14,3 +14,22 @@ experimentation + cheap long training.** Both stores hold the same
 The model-loading + encode/decode logic itself lives in `eval/serve.py` (framework-
 agnostic); `modal_serve.py` wraps it for Modal, and `RUNPOD_SERVE.md` documents the
 RunPod pod workflow.
+
+## M3 workspace
+
+M3 training/evaluation is isolated under Modal profile **`slower-roads-m3`**:
+
+- `sr-m3-train` holds train/validation caches, model checkpoints, and metrics.
+- `sr-m3-val` holds seed5 RGB oracle frames for pixel-space promotion gates.
+- `sr-m3-test` holds pristine seed2 and is mounted only by `evaluate_m3`.
+- `deploy/modal_train.py` defines the `sr-m3` app; Volume names can be overridden
+  with `SR_MODAL_TRAIN_VOLUME` / `SR_MODAL_VAL_VOLUME` / `SR_MODAL_TEST_VOLUME`.
+- `deploy/modal_gen.py` defaults to `sr-m3-train`; override with
+  `SR_MODAL_VOLUME=sr-m3-val` or `sr-m3-test` for isolated oracle generation.
+
+Smoke all M3 mechanisms on an A10:
+
+```bash
+modal profile activate slower-roads-m3
+modal run deploy/modal_train.py::smoke
+```

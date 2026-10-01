@@ -18,6 +18,11 @@ G = 16                        # latent grid side -> G*G tokens per frame
 TOKENS_PER_FRAME = G * G                 # G*G visual tokens per frame (256 at G=16)
 NUM_VISUAL_TOKENS = prod(LEVELS)         # 12800 visual code indices
 
+# Sparse sim-state vector {x, z, heading, speed} (mirrors dataset.STATE_KEYS and
+# train_state_dynamics.STATE_DIM). The optional state-continuity head regresses the
+# per-frame delta of this vector, giving the cache a direct continuity objective.
+STATE_DIM = 4
+
 # The new sim's action is {steer, throttle}, both continuous in [-1,1] (throttle
 # < 0 = brake). For the AR token stream we discretize into a STEER x THROTTLE
 # grid; keeping 3x3 leaves NUM_ACTION_TOKENS = 9 so the vocab layout is unchanged.

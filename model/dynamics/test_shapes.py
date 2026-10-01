@@ -121,6 +121,7 @@ def torch_tests():
     import torch
     from model.dynamics.ar_core import ARDynamics, build_rope_cache, apply_rope
     from model.dynamics.rollout_loss import rollout_loss
+    from model.dynamics.sequence import build_context
 
     print("\nTorch shape tests:")
     ok = True
@@ -162,6 +163,80 @@ def torch_tests():
     cached = model.generate_frame(tokens, action_id)[:, 0]
     ok &= check("cached first-token == non-cached argmax", bool((ref == cached).all()))
 
+    anchored = ARDynamics(
+        d_model=64, n_heads=4, n_layers=2, max_seq_len=2048,
+        anchor_cond=True,
+    )
+    context_anchor = torch.rand(B, 1, 16, G, G)
+    current_anchor = torch.rand(B, 16, G, G)
+    context_anchor_emb = anchored.anchor_sequence(context_anchor, anchor_lambda=0.5)
+    anchored_frame = anchored.generate_frame(
+        tokens, action_id, context_anchor_emb=context_anchor_emb,
+        anchor=current_anchor, anchor_lambda=0.5,
+    )
+    ok &= check("lambda anchor generates token-aligned frame",
+                tuple(anchored_frame.shape) == (B, TOKENS_PER_FRAME))
+    zero_anchor = anchored.anchor_sequence(context_anchor, anchor_lambda=0.0)
+    ok &= check("lambda=0 zeros the anchor path", bool((zero_anchor == 0).all()))
+
+    # Frame-recency attention remains causal in full and cached paths and its
+    # final-token diagnostic accounts for all attention mass.
+    recency = ARDynamics(
+        d_model=64, n_heads=4, n_layers=2, max_seq_len=2048,
+        attention_recency_bias=0.05,
+    )
+    rec_logits = recency(tokens)
+    rec_frame = recency.generate_frame(
+        tokens, action_id, n_tokens=4, capture_final_attention=True,
+    )
+    profile = recency.attention_profile()
+    mass = sum(profile[0]["frame_mass"].values())
+    ok &= check("frame-recency attention full/cached shapes",
+                rec_logits.shape == logits.shape and rec_frame.shape == (B, 4))
+    ok &= check("attention profile mass normalized with positive slopes",
+                abs(mass - 1.0) < 1e-5
+                and min(profile[0]["recency_slopes"]) > 0)
+
+    output_anchor = ARDynamics(
+        d_model=64, n_heads=4, n_layers=2, max_seq_len=2048,
+        anchor_cond=True, anchor_injection="output",
+    )
+    out_frame = output_anchor.generate_frame(
+        tokens, action_id,
+        context_anchor_emb=output_anchor.anchor_sequence(context_anchor, 1.0),
+        anchor=current_anchor, anchor_lambda=1.0, n_tokens=4,
+    )
+    ok &= check("output-only anchor generates without entering temporal Q/K",
+                out_frame.shape == (B, 4)
+                and output_anchor.anchor_output_gate is not None)
+
+    # Skeleton memory tokens + state-continuity head: gate starts at zero
+    # (warm-start neutral), memory pools to a square token grid, generation runs.
+    mem_state = ARDynamics(
+        d_model=64, n_heads=4, n_layers=2, max_seq_len=2048,
+        anchor_cond=True, mem_cross_attn=True, mem_tokens=16, state_head=True,
+    )
+    ok &= check("mem tokens rounded to a square grid", mem_state.mem_tokens == 16)
+    ok &= check("cross-attn gate initialized to zero (warm-start neutral)",
+                float(mem_state.blocks[0].cross_gate) == 0.0)
+    mem_frame = mem_state.generate_frame(
+        tokens, action_id,
+        context_anchor_emb=mem_state.anchor_sequence(context_anchor, 1.0),
+        anchor=current_anchor, anchor_lambda=1.0, n_tokens=4,
+    )
+    ok &= check("mem+state generate_frame shape", tuple(mem_frame.shape) == (B, 4))
+
+    clean_codes = torch.randint(0, NUM_VISUAL_TOKENS, (B, 2, TOKENS_PER_FRAME))
+    unchanged = ARDynamics.corrupt_fsq_tokens(
+        clean_codes, torch.zeros(B, 2, 1)
+    )
+    corrupted = ARDynamics.corrupt_fsq_tokens(
+        clean_codes, torch.ones(B, 2, 1)
+    )
+    ok &= check("zero corruption preserves FSQ tokens", bool((unchanged == clean_codes).all()))
+    ok &= check("FSQ-local corruption stays in visual vocabulary",
+                bool((corrupted >= 0).all() and (corrupted < NUM_VISUAL_TOKENS).all()))
+
     # Rollout loss end-to-end with a stub decoder (callable, not imported).
     # Grid-agnostic: reshape the tok visual tokens onto a sqrt(tok) grid and
     # upsample to the 64x64 frame, so this survives grid changes (8x8 -> 16x16).
@@ -180,6 +255,68 @@ def torch_tests():
     total, parts = rollout_loss(model, stub_decoder, z_ctx, actions, targets, gt, H)
     ok &= check("rollout_loss returns scalar + parts",
                 total.dim() == 0 and "ce" in parts and "pixel" in parts)
+
+    # Memory-token + state-continuity rollout: reports a 'state' loss whose
+    # gradient reaches both the state head and the cross-attention gate.
+    Hs = 2
+    ms_actions = torch.randint(0, NUM_ACTION_TOKENS, (B, Hs))
+    ms_targets = torch.randint(0, NUM_VISUAL_TOKENS, (B, Hs, TOKENS_PER_FRAME))
+    total_ms, parts_ms = rollout_loss(
+        mem_state, stub_decoder, tokens, ms_actions, ms_targets, None, Hs,
+        pixel_weight=0.0, context_anchor=torch.rand(B, 1, 16, G, G),
+        target_anchor=torch.rand(B, Hs, 16, G, G), anchor_lambda=1.0,
+        context_state=torch.rand(B, 1, 4), target_state=torch.rand(B, Hs, 4),
+        state_weight=0.5,
+    )
+    ok &= check("mem+state rollout returns a 'state' loss part",
+                "state" in parts_ms and total_ms.dim() == 0)
+    total_ms.backward()
+    ok &= check("state-continuity gradient reaches the state head + cross gate",
+                mem_state.state_head[-1].weight.grad is not None
+                and mem_state.blocks[0].cross_gate.grad is not None)
+
+    # Exact self-rollout must feed the same generated frame into the next step
+    # and retain only the configured rolling context window.
+    class SpyRollout(torch.nn.Module):
+        action_cond = None
+
+        def __init__(self):
+            super().__init__()
+            self.prefixes = []
+
+        def forward(self, seq, cond_ids=None, anchor_emb=None, noise_levels=None,
+                    memory=None, mem_mask=None, return_state=False):
+            return torch.zeros(
+                seq.shape[0], seq.shape[1], VOCAB_SIZE,
+                device=seq.device, requires_grad=True,
+            )
+
+        @torch.no_grad()
+        def generate_frame(self, prefix, action_id, **kwargs):
+            self.prefixes.append(prefix.clone())
+            value = len(self.prefixes)
+            return torch.full(
+                (prefix.shape[0], TOKENS_PER_FRAME), value,
+                dtype=torch.long, device=prefix.device,
+            )
+
+    spy = SpyRollout()
+    one_ctx_actions = torch.randint(0, NUM_ACTION_TOKENS, (B, 1))
+    one_ctx_visual = torch.randint(0, NUM_VISUAL_TOKENS, (B, 1, TOKENS_PER_FRAME))
+    one_ctx = build_context(one_ctx_actions, one_ctx_visual)
+    sr_actions = torch.randint(0, NUM_ACTION_TOKENS, (B, 2))
+    sr_targets = torch.randint(0, NUM_VISUAL_TOKENS, (B, 2, TOKENS_PER_FRAME))
+    rollout_loss(
+        spy, stub_decoder, one_ctx, sr_actions, sr_targets, None, 2,
+        pixel_weight=0.0, self_rollout=True, context_window=1,
+    )
+    exact_feedback = (
+        len(spy.prefixes) == 2
+        and spy.prefixes[1].shape[1] == FRAME_STRIDE
+        and bool((spy.prefixes[1][:, 1:] == 1).all())
+        and spy.training
+    )
+    ok &= check("self-rollout feeds exact generated frame with bounded context", exact_feedback)
 
     print(f"\nTorch tests: {'ALL PASS' if ok else 'FAILURES PRESENT'}")
     return ok

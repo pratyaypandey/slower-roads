@@ -37,6 +37,7 @@ import torch
 from model.registry import load_tokenizer, load_dynamics
 from model.dynamics.sequence import build_context, action_to_vocab
 from model.dynamics.config import STEER_EDGES, THROTTLE_BUCKETS, FRAME_STRIDE
+from model.data.dataset import action_driving_frame
 from eval.drift import pixel_drift, latent_drift
 from eval.eval_dream import action_id
 
@@ -68,10 +69,12 @@ def load_window(data_dir, samples, start, context, steps, device):
     ctx_idx = range(start - context, start)
     frames = [np.load(os.path.join(data_dir, samples[i]["frame"])) for i in ctx_idx]
     ctx_frames = torch.from_numpy(np.stack(frames)).float().to(device)      # (T,3,64,64)
-    ctx_acts = torch.tensor([action_id(samples[i]["action"]) for i in ctx_idx], device=device)
+    ctx_acts = torch.tensor(
+        [action_id(action_driving_frame(samples, i)) for i in ctx_idx], device=device
+    )
     # H actions driving frames start..start+steps-1 (action at s+k-1 drives s+k).
     step_acts = torch.tensor(
-        [action_id(samples[start + k - 1]["action"]) for k in range(steps)], device=device)
+        [action_id(action_driving_frame(samples, start + k)) for k in range(steps)], device=device)
     oracle = np.stack([np.load(os.path.join(data_dir, samples[start + k]["frame"]))
                        for k in range(steps)])                              # (H,3,64,64)
     return ctx_frames, ctx_acts, step_acts, oracle
@@ -97,7 +100,7 @@ def rollout(dyn, tok, ctx_frames, ctx_acts, step_acts, window):
     return torch.stack(dreamed).clamp(0, 1).numpy()
 
 
-def main():
+def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("--data", default="data/seed1")
     p.add_argument("--tokenizer", default="checkpoints/tokenizer.pt")
@@ -107,7 +110,7 @@ def main():
     p.add_argument("--window", type=int, default=-1,
                    help="bounded prefix frames (-1 = match --context; 0 = unbounded)")
     p.add_argument("--out", default="eval/plots")
-    args = p.parse_args()
+    args = p.parse_args(argv)
     if args.window < 0:
         args.window = args.context
 
@@ -208,4 +211,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main(None)
