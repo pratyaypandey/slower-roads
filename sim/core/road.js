@@ -16,9 +16,9 @@ const CURVE_FREQ = 0.010;      // spatial frequency of the winding
 const ROAD_WIDTH = 9.0;
 const MAX_GRADE = 0.16;        // 16% maximum engineered road grade
 const MAX_GRADE_RATE = 0.012;  // grade change per metre (vertical curvature)
-const GRADE_RESPONSE = 20;     // metres over which the road approaches terrain height
+const GRADE_RESPONSE = 30;     // metres over which the road approaches terrain height (longer => more cuts/fills)
 const SHOULDER = 3;
-const ROLL_SPAN = 46;
+const ROLL_SPAN = 16;          // road-to-hillside transition: short => steep cuts/embankments
 
 // Shared terrain heightfield. The road drapes over THIS field (its centerline y is
 // H at the centerline), and the off-road terrain is the same field — so road and
@@ -26,10 +26,10 @@ const ROLL_SPAN = 46;
 //
 // Two scales: broad mountains + medium rolling hills, so there is real relief within
 // the view distance rather than an almost-flat plain.
-const H_FREQ = 0.0026;   // broad ridges / mountains
-const H_AMP = 62;
+const H_FREQ = 0.004;    // broad ridges / hills
+const H_AMP = 80;
 const H_FREQ2 = 0.011;   // medium rolling hills
-const H_AMP2 = 16;
+const H_AMP2 = 24;
 const H_SEED = 6373;
 export function heightField(x, z, seed, hilliness) {
   const s = (seed + H_SEED) >>> 0;
@@ -48,7 +48,19 @@ export function terrainSurfaceHeight(center, lateral, x, z, seed, hilliness) {
   const off = smoothstep(half + SHOULDER, half + SHOULDER + ROLL_SPAN, Math.abs(lateral));
   const terrain = heightField(x, z, seed, hilliness);
   const micro = fbm2(x * 0.12, z * 0.12, seed + 51, 2) * 0.35 * off;
-  return center.y + (terrain - center.y) * off + micro;
+  return center.y + (terrain - center.y) * off + micro + hillside(center.d || 0, lateral, off, seed, hilliness);
+}
+
+// Hillside roads: a cross-slope beside the road that varies slowly along it, so the
+// road runs along a slope (rising on one side, falling on the other, as in the
+// reference footage) instead of always sitting in open ground. It is zero on the
+// road corridor and fades out by HILLSIDE_FADE metres, so far terrain is untouched.
+const HILLSIDE_SLOPE = 1.6;      // metres of rise per lateral metre at full strength
+const HILLSIDE_FADE = [60, 140];
+function hillside(d, lateral, off, seed, hilliness) {
+  const s = fbm1(d * 0.0035, seed + 7717, 2) * HILLSIDE_SLOPE * hilliness;
+  const fade = 1 - smoothstep(HILLSIDE_FADE[0], HILLSIDE_FADE[1], Math.abs(lateral));
+  return s * lateral * off * fade;
 }
 
 // Global sea level. Terrain below this is underwater (the renderer draws a water
@@ -143,6 +155,14 @@ export class Road {
         bestDist = dist;
         bestD = d;
       }
+    }
+    // Refine the 1 m grid hit to the exact foot of the perpendicular. A quantised d
+    // made everything derived from it step: on a 16% grade the car's ground height
+    // jumped 0.16 m per metre travelled, and the chase camera juddered with it.
+    const lo = Math.max(0, bestD - STEP), hi = Math.min(this.length, bestD + STEP);
+    for (let it = 0; it < 2; it++) {
+      const q = this.sampleAt(bestD), t = this.tangentAt(bestD);
+      bestD = Math.min(hi, Math.max(lo, bestD + (x - q.x) * t.x + (z - q.z) * t.z));
     }
     const p = this.sampleAt(bestD);
     const tan = this.tangentAt(bestD);

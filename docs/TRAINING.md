@@ -130,6 +130,29 @@ The state path trains `train_state_dynamics` today with no GPU. The pixel path
 feeds the tokenizer + AR/flow dynamics. For a bigger/varied dataset, generate
 several seeds into separate dirs and train on whichever `--data` dir you want.
 
+### Multi-episode dataset with simulated keystrokes (`train_v2`)
+
+```bash
+# ~30 min for 3 h on an Apple-silicon Mac (Metal); resumable, re-run to continue
+SLOWSIM_ANGLE=metal SLOWSIM_CHANNEL=chrome SLOWSIM_GL=gpu \
+  node sim/headless/generate_dataset.mjs --hours 3 --out data/train_v2   # [--steps 3600] [--size 64]
+```
+
+- **Episodes.** Two-minute episodes (3,600 steps at 30 fps), each a fresh world
+  (seed), each in the standard manifest format.
+- **Extra per-sample field.** `keys` holds the WASD keys "held" that step.
+- **Extra manifest fields.** `policy`, `policySeed` and `stats` (off-road fraction,
+  mean speed).
+- **Index.** `data/train_v2/index.json` lists every episode.
+- **Profile mix:** 25% `cruise`, 25% `keys_lane`, 25% `keys_explore`, 12%
+  `lane_change`, 13% `dial_mix`. Profiles are defined in `sim/core/policies.js`.
+- **Keyboard path.** Keyboard profiles go through `sim/core/input.js`, the same
+  key-to-action smoothing the demo applies to a human player.
+
+Each episode is a normal dataset, and `--data` takes several, e.g.
+`--data data/train_v2/ep*` (all of them) or `--data data/train_v2/ep*_cruise_*`
+(one profile).
+
 ## Step 1 — tokenizer (M1)
 
 ```bash
