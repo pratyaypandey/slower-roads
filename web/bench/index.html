@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>World-model latency bench</title>
+<style>
+  body { font: 13px/1.4 ui-monospace, Menlo, monospace; margin: 16px; background: #fff; color: #111; }
+  table { border-collapse: collapse; margin-top: 12px; }
+  td, th { padding: 2px 8px; border-bottom: 1px solid #ddd; text-align: right; }
+  th { text-align: left; }
+  .ok { color: #0a7d32; } .bad { color: #b3261e; }
+  button { font: inherit; padding: 4px 10px; margin-right: 6px; }
+</style>
+</head>
+<body>
+<h3>Slower Roads: WebGPU world-model latency bench</h3>
+<div id="env">probing…</div>
+<p>
+  <button id="quick">Run quick plan</button>
+  <button id="full">Run full plan</button>
+  <button id="dl" disabled>Download results JSON</button>
+  <span id="status"></span>
+</p>
+<table id="tbl"><thead><tr>
+  <th>model</th><th>ep/kv</th><th>params</th><th>MB</th><th>pass ms</th><th>commit ms</th>
+  <th>decode ms</th><th>frame P=1</th><th>P=2</th><th>first ms</th>
+</tr></thead><tbody></tbody></table>
+<script type="module">
+let manifest = {}, env = null;
+const results = [];
+window.benchResults = results;
+
+function call(worker, msg) {
+  return new Promise((resolve, reject) => {
+    const id = Math.random();
+    const h = (e) => { if (e.data.id !== id) return; worker.removeEventListener("message", h);
+      e.data.ok ? resolve(e.data.result) : reject(new Error(e.data.error)); };
+    worker.addEventListener("message", h);
+    worker.onerror = (e) => reject(new Error(`worker error: ${e.message} ${e.filename}:${e.lineno}`));
+    worker.postMessage({ ...msg, id });
+  });
+}
+
+// Fresh worker per job so one model's GPU buffers/sessions can't skew the next.
+async function runJob(job) {
+  const w = new Worker(`worker.js?rt=${job.runtime || "native"}`, { type: "module" });
+  try {
+    await call(w, { cmd: "init", profile: !!job.profile, ownDevice: !!job.ownDevice });
+    return await call(w, { cmd: "bench", job });
+  } finally { w.terminate(); }
+}
+
+const fmt = (x, d = 1) => x == null ? "" : x.toFixed(d);
+function addRow(r) {
+  const m = r.job.dyn || r.job.dec || { name: r.job.probe.file }, tr = document.createElement("tr");
+  const cells = r.error ? [m.name, `${r.job.ep}/${r.job.kv}`, `<span class="bad">${r.error.split("\n")[0]}</span>`] : [
+    m.name + (r.job.dyn && r.job.dec ? " + " + r.job.dec.name : ""), `${r.ep}/${r.kv}`,
+    fmt(m.params / 1e6), fmt(m.bytes / 1e6), fmt(r.pass?.median, 2), fmt(r.commitPass?.median, 2),
+    fmt(r.decode?.median, 2), fmt(r.frame?.[1]?.median), fmt(r.frame?.[2]?.median),
+    fmt(r.firstPassMs ?? r.decFirstMs, 0)];
+  tr.innerHTML = cells.map((c, i) => `<${i ? "td" : "th"}>${c}</${i ? "td" : "th"}>`).join("");
+  document.querySelector("#tbl tbody").appendChild(tr);
+}
+
+export async function runPlan(plan, onProgress) {
+  for (let i = 0; i < plan.length; i++) {
+    const job = plan[i];
+    document.getElementById("status").textContent = `${i + 1}/${plan.length} ${(job.dyn || job.dec || { name: job.probe.file }).name}`;
+    let r;
+    try { r = await runJob(job); } catch (err) { r = { job, error: String(err.message || err) }; }
+    results.push(r); addRow(r); onProgress && onProgress(r);
+  }
+  document.getElementById("status").textContent = "done";
+  document.getElementById("dl").disabled = false;
+  return results;
+}
+window.runPlan = runPlan;
+
+// Quick plan for another device: the shapes the M3 Max results single out
+// (fused fsq-head at P=1/2 across depth, plus the unfused baseline).
+function quickPlan() {
+  const dec = manifest["dec_h128_g16_f64_fp16"];
+  return ["dyn_d256_L4_c4_g16_fsq_fused_fp16", "dyn_d384_L4_c4_g16_fsq_fused_fp16", "dyn_d512_L4_c4_g16_fsq_fused_fp16",
+          "dyn_d384_L6_c4_g16_fsq_fused_fp16", "dyn_d384_L8_c4_g16_fsq_fused_fp16", "dyn_d768_L4_c4_g16_fsq_fused_fp16",
+          "dyn_d384_L8_c4_g16_full_fp16"]
+    .filter((n) => manifest[n]).map((n) => ({ dyn: manifest[n], dec, kv: "capture", P: [1, 2], passIters: 15, frameIters: 10 }));
+}
+function fullPlan() {
+  const plan = [];
+  for (const m of Object.values(manifest)) {
+    if (m.kind === "dec") plan.push({ dec: m, kv: "capture" });
+    else if (m.kind === "dyn") plan.push({ dyn: m, kv: "capture", P: [1, 2], dec: manifest[`dec_h128_g${m.grid}_f${m.grid * 4}${m.dtype === "fp16" ? "_fp16" : ""}`] });
+  }
+  return plan;
+}
+
+document.getElementById("quick").onclick = () => runPlan(quickPlan());
+document.getElementById("full").onclick = () => runPlan(fullPlan());
+document.getElementById("dl").onclick = () => {
+  const blob = new Blob([JSON.stringify({ env, results }, null, 1)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `bench_${(env?.adapter?.vendor || "unknown")}_${Date.now()}.json`; a.click();
+};
+
+manifest = await (await fetch("models/manifest.json")).json();
+const w = new Worker("worker.js", { type: "module" });
+env = await call(w, { cmd: "init" }); w.terminate();
+window.benchEnv = env;
+document.getElementById("env").innerHTML =
+  `ORT ${env.ortVersion} · isolated=${env.crossOriginIsolated} · threads=${env.hardwareConcurrency} · ` +
+  (env.adapter ? `<span class="ok">WebGPU: ${env.adapter.vendor} ${env.adapter.architecture} ${env.adapter.description}</span> · shader-f16=${env.features.includes("shader-f16")}`
+               : `<span class="bad">no WebGPU adapter</span>`);
+window.benchReady = true;
+</script>
+</body>
+</html>

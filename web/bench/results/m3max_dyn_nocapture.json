@@ -1,0 +1,1651 @@
+{
+ "env": {
+  "ortVersion": "1.30.0",
+  "runtime": "native",
+  "crossOriginIsolated": true,
+  "hardwareConcurrency": 16,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+  "adapter": {
+   "vendor": "apple",
+   "architecture": "metal-3",
+   "device": "",
+   "description": ""
+  },
+  "features": [
+   "depth32float-stencil8",
+   "chromium-experimental-subgroup-matrix",
+   "rg11b10ufloat-renderable",
+   "texture-formats-tier1",
+   "bgra8unorm-storage",
+   "texture-compression-bc",
+   "dual-source-blending",
+   "core-features-and-limits",
+   "float32-filterable",
+   "indirect-first-instance",
+   "texture-compression-astc-sliced-3d",
+   "float32-blendable",
+   "subgroup-size-control",
+   "texture-compression-unaligned",
+   "texture-compression-astc",
+   "texture-compression-etc2",
+   "depth-clip-control",
+   "texture-compression-bc-sliced-3d",
+   "clip-distances",
+   "shader-f16",
+   "texture-formats-tier2",
+   "timestamp-query",
+   "primitive-index",
+   "texture-component-swizzle",
+   "subgroups"
+  ],
+  "limits": {
+   "maxBufferSize": 4294967292,
+   "maxStorageBufferBindingSize": 4294967292
+  }
+ },
+ "date": "2026-10-01T09:02:29.160Z",
+ "results": [
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d256_L4_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d256_L4_c4_g16_full_fp16.onnx",
+     "d": 256,
+     "layers": 4,
+     "heads": 4,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 10875784,
+     "bytes": 21823640
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 13.79500000178814,
+    "createMs": 372.24000000953674
+   },
+   "firstPassMs": 63.810000002384186,
+   "pass": {
+    "n": 15,
+    "median": 11.015000000596046,
+    "p10": 10.200000002980232,
+    "p90": 11.320000007748604,
+    "min": 10.07999999821186,
+    "mean": 10.911999998490016
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 10.734999999403954,
+    "p10": 10.109999999403954,
+    "p90": 12.485000014305115,
+    "min": 9.784999996423721,
+    "mean": 10.9653333346049
+   },
+   "decLoad": {
+    "fetchMs": 15.680000007152557,
+    "createMs": 20.674999997019768
+   },
+   "decFirstMs": 17.50500001013279,
+   "decode": {
+    "n": 15,
+    "median": 5.465000003576279,
+    "p10": 5.055000007152557,
+    "p90": 10.034999996423721,
+    "min": 5.004999995231628,
+    "mean": 6.125666667024294
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 31.794999986886978,
+     "p10": 30.37000000476837,
+     "p90": 34.32500000298023,
+     "min": 30.200000002980232,
+     "mean": 31.73149999976158
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d256_L4_c8_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d256_L4_c8_g16_full_fp16.onnx",
+     "d": 256,
+     "layers": 4,
+     "heads": 4,
+     "hd": 64,
+     "ctx": 8,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 10875784,
+     "bytes": 21823640
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 13.649999991059303,
+    "createMs": 130.08500000834465
+   },
+   "firstPassMs": 37.929999992251396,
+   "pass": {
+    "n": 15,
+    "median": 11.24499998986721,
+    "p10": 10.29500000178814,
+    "p90": 11.810000002384186,
+    "min": 10.03999999165535,
+    "mean": 11.181333332260449
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 11.365000009536743,
+    "p10": 10.400000005960464,
+    "p90": 11.924999997019768,
+    "min": 10.284999996423721,
+    "mean": 11.161333335439364
+   },
+   "decLoad": {
+    "fetchMs": 20.46500000357628,
+    "createMs": 20.144999995827675
+   },
+   "decFirstMs": 16.320000007748604,
+   "decode": {
+    "n": 15,
+    "median": 4.739999994635582,
+    "p10": 4.564999997615814,
+    "p90": 5.135000005364418,
+    "min": 4.459999993443489,
+    "mean": 4.8256666670242945
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 34.91499999165535,
+     "p10": 33.25499999523163,
+     "p90": 35.71500000357628,
+     "min": 33.09000000357628,
+     "mean": 34.63949999958277
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d256_L8_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d256_L8_c4_g16_full_fp16.onnx",
+     "d": 256,
+     "layers": 8,
+     "heads": 4,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 15089548,
+     "bytes": 30317733
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 17.07999999821186,
+    "createMs": 188.01000000536442
+   },
+   "firstPassMs": 41.189999997615814,
+   "pass": {
+    "n": 15,
+    "median": 13.674999997019768,
+    "p10": 12.424999997019768,
+    "p90": 15.659999996423721,
+    "min": 12.375,
+    "mean": 13.887333330512046
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 13.415000006556511,
+    "p10": 12.615000009536743,
+    "p90": 15.475000008940697,
+    "min": 12.344999998807907,
+    "mean": 13.668000003695488
+   },
+   "decLoad": {
+    "fetchMs": 16.194999992847443,
+    "createMs": 22.305000007152557
+   },
+   "decFirstMs": 16.189999997615814,
+   "decode": {
+    "n": 15,
+    "median": 4.260000005364418,
+    "p10": 4.204999998211861,
+    "p90": 4.440000012516975,
+    "min": 4.200000002980232,
+    "mean": 4.355333333214124
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 42.395000010728836,
+     "p10": 41.62999999523163,
+     "p90": 42.724999994039536,
+     "min": 41.60999999940395,
+     "mean": 42.2690000012517
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d256_L8_c8_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d256_L8_c8_g16_full_fp16.onnx",
+     "d": 256,
+     "layers": 8,
+     "heads": 4,
+     "hd": 64,
+     "ctx": 8,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 15089548,
+     "bytes": 30317733
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 18.730000004172325,
+    "createMs": 184.6799999922514
+   },
+   "firstPassMs": 44.13000001013279,
+   "pass": {
+    "n": 15,
+    "median": 16.430000007152557,
+    "p10": 15.599999994039536,
+    "p90": 17.03999999165535,
+    "min": 15.195000007748604,
+    "mean": 16.38000000019868
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 16.29500000178814,
+    "p10": 15.25,
+    "p90": 16.894999995827675,
+    "min": 15.114999994635582,
+    "mean": 16.371666666865348
+   },
+   "decLoad": {
+    "fetchMs": 18.180000007152557,
+    "createMs": 18.364999994635582
+   },
+   "decFirstMs": 16.54000000655651,
+   "decode": {
+    "n": 15,
+    "median": 4.2249999940395355,
+    "p10": 4.1099999994039536,
+    "p90": 4.469999998807907,
+    "min": 4.079999998211861,
+    "mean": 4.256333334247271
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 49.7749999910593,
+     "p10": 49.29000000655651,
+     "p90": 51.144999995827675,
+     "min": 49.28500001132488,
+     "mean": 49.84750000089407
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d256_L12_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d256_L12_c4_g16_full_fp16.onnx",
+     "d": 256,
+     "layers": 12,
+     "heads": 4,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 19303312,
+     "bytes": 38812872
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 26.5,
+    "createMs": 229.8449999988079
+   },
+   "firstPassMs": 46.99000000953674,
+   "pass": {
+    "n": 15,
+    "median": 16.66500000655651,
+    "p10": 16.515000000596046,
+    "p90": 17.25500001013279,
+    "min": 16.479999989271164,
+    "mean": 16.816666666666666
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 16.705000013113022,
+    "p10": 16.5,
+    "p90": 18.055000007152557,
+    "min": 16.435000002384186,
+    "mean": 17.12966666817665
+   },
+   "decLoad": {
+    "fetchMs": 17.105000004172325,
+    "createMs": 18.17000000178814
+   },
+   "decFirstMs": 15.569999992847443,
+   "decode": {
+    "n": 15,
+    "median": 4.520000010728836,
+    "p10": 4.434999987483025,
+    "p90": 4.655000001192093,
+    "min": 4.424999997019768,
+    "mean": 4.536333333452543
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 54.71999999880791,
+     "p10": 54.10999999940395,
+     "p90": 57.3999999910593,
+     "min": 53.8999999910593,
+     "mean": 55.074499998986724
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d256_L12_c8_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d256_L12_c8_g16_full_fp16.onnx",
+     "d": 256,
+     "layers": 12,
+     "heads": 4,
+     "hd": 64,
+     "ctx": 8,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 19303312,
+     "bytes": 38812872
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 21.70499999821186,
+    "createMs": 274.0600000023842
+   },
+   "firstPassMs": 64.92500001192093,
+   "pass": {
+    "n": 15,
+    "median": 20.385000005364418,
+    "p10": 20.030000001192093,
+    "p90": 20.774999991059303,
+    "min": 19.975000008940697,
+    "mean": 20.40600000321865
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 20.439999997615814,
+    "p10": 20.25,
+    "p90": 21.094999998807907,
+    "min": 20.189999997615814,
+    "mean": 20.66633332967758
+   },
+   "decLoad": {
+    "fetchMs": 16.554999992251396,
+    "createMs": 22.79500000178814
+   },
+   "decFirstMs": 15.269999995827675,
+   "decode": {
+    "n": 15,
+    "median": 4.3900000005960464,
+    "p10": 4.314999997615814,
+    "p90": 4.534999996423721,
+    "min": 4.2349999994039536,
+    "mean": 4.408999999364217
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 65.64499999582767,
+     "p10": 64.64000000059605,
+     "p90": 66.64000000059605,
+     "min": 64.2199999988079,
+     "mean": 65.5625
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d384_L4_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d384_L4_c4_g16_full_fp16.onnx",
+     "d": 384,
+     "layers": 4,
+     "heads": 6,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 19483976,
+     "bytes": 39033880
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 26.87999999523163,
+    "createMs": 130.4350000023842
+   },
+   "firstPassMs": 35.42499999701977,
+   "pass": {
+    "n": 15,
+    "median": 9.799999997019768,
+    "p10": 9.70499999821186,
+    "p90": 10.115000009536743,
+    "min": 9.614999994635582,
+    "mean": 9.875333333015442
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 9.769999995827675,
+    "p10": 9.629999995231628,
+    "p90": 10.144999995827675,
+    "min": 9.620000004768372,
+    "mean": 9.852999999125798
+   },
+   "decLoad": {
+    "fetchMs": 14.754999995231628,
+    "createMs": 19.91500000655651
+   },
+   "decFirstMs": 16.16500000655651,
+   "decode": {
+    "n": 15,
+    "median": 4.379999995231628,
+    "p10": 4.25,
+    "p90": 4.420000001788139,
+    "min": 4.215000003576279,
+    "mean": 4.385666667421659
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 33.820000007748604,
+     "p10": 33.32499998807907,
+     "p90": 36.66499999165535,
+     "min": 33.29500000178814,
+     "mean": 34.04150000065565
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d384_L4_c8_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d384_L4_c8_g16_full_fp16.onnx",
+     "d": 384,
+     "layers": 4,
+     "heads": 6,
+     "hd": 64,
+     "ctx": 8,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 19483976,
+     "bytes": 39033880
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 22.109999999403954,
+    "createMs": 131.51500000059605
+   },
+   "firstPassMs": 38.83499999344349,
+   "pass": {
+    "n": 15,
+    "median": 12.285000011324883,
+    "p10": 11.66499999165535,
+    "p90": 13.200000002980232,
+    "min": 11.600000008940697,
+    "mean": 12.397333334883054
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 12.364999994635582,
+    "p10": 11.700000002980232,
+    "p90": 13.015000000596046,
+    "min": 11.429999992251396,
+    "mean": 12.333666664361953
+   },
+   "decLoad": {
+    "fetchMs": 15.63000001013279,
+    "createMs": 19.569999992847443
+   },
+   "decFirstMs": 15.080000013113022,
+   "decode": {
+    "n": 15,
+    "median": 4.679999992251396,
+    "p10": 4.504999995231628,
+    "p90": 4.920000001788139,
+    "min": 4.450000002980232,
+    "mean": 4.707666666309039
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 40.33500000834465,
+     "p10": 38.625,
+     "p90": 41.57500000298023,
+     "min": 38.570000007748604,
+     "mean": 39.95100000202656
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d384_L8_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d384_L8_c4_g16_full_fp16.onnx",
+     "d": 384,
+     "layers": 8,
+     "heads": 6,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 28950348,
+     "bytes": 58027045
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 28.700000002980232,
+    "createMs": 179.32999999821186
+   },
+   "firstPassMs": 42.849999994039536,
+   "pass": {
+    "n": 15,
+    "median": 15.069999992847443,
+    "p10": 14.814999997615814,
+    "p90": 16.894999995827675,
+    "min": 14.800000011920929,
+    "mean": 15.403666666150093
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 15.120000004768372,
+    "p10": 14.709999993443489,
+    "p90": 16.325000002980232,
+    "min": 14.689999997615814,
+    "mean": 15.42500000099341
+   },
+   "decLoad": {
+    "fetchMs": 15.310000002384186,
+    "createMs": 20.989999994635582
+   },
+   "decFirstMs": 17.894999995827675,
+   "decode": {
+    "n": 15,
+    "median": 4.4000000059604645,
+    "p10": 4.304999992251396,
+    "p90": 4.524999991059303,
+    "min": 4.290000006556511,
+    "mean": 4.403666665156682
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 49.51000000536442,
+     "p10": 49.019999995827675,
+     "p90": 49.875,
+     "min": 49.00500001013279,
+     "mean": 49.39600000083446
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d384_L8_c8_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d384_L8_c8_g16_full_fp16.onnx",
+     "d": 384,
+     "layers": 8,
+     "heads": 6,
+     "hd": 64,
+     "ctx": 8,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 28950348,
+     "bytes": 58027045
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 29.325000002980232,
+    "createMs": 186.2099999934435
+   },
+   "firstPassMs": 61.71999999880791,
+   "pass": {
+    "n": 15,
+    "median": 17.974999994039536,
+    "p10": 17.820000007748604,
+    "p90": 18.434999987483025,
+    "min": 17.79500000178814,
+    "mean": 18.07066666384538
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 18.069999992847443,
+    "p10": 17.90999999642372,
+    "p90": 18.57999999821186,
+    "min": 17.825000002980232,
+    "mean": 18.13900000353654
+   },
+   "decLoad": {
+    "fetchMs": 15.384999990463257,
+    "createMs": 21.174999997019768
+   },
+   "decFirstMs": 17.115000009536743,
+   "decode": {
+    "n": 15,
+    "median": 4.3599999994039536,
+    "p10": 4.299999997019768,
+    "p90": 4.409999996423721,
+    "min": 4.245000004768372,
+    "mean": 4.36400000055631
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 58.519999995827675,
+     "p10": 58.2749999910593,
+     "p90": 59.435000002384186,
+     "min": 58.064999997615814,
+     "mean": 58.65
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d384_L12_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d384_L12_c4_g16_full_fp16.onnx",
+     "d": 384,
+     "layers": 12,
+     "heads": 6,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 38416720,
+     "bytes": 77021256
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 48.689999997615814,
+    "createMs": 351.05500000715256
+   },
+   "firstPassMs": 53.625,
+   "pass": {
+    "n": 15,
+    "median": 19.91500000655651,
+    "p10": 19.719999998807907,
+    "p90": 20.00499999523163,
+    "min": 19.695000007748604,
+    "mean": 19.901999997099242
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 19.91500000655651,
+    "p10": 19.805000007152557,
+    "p90": 20.04000000655651,
+    "min": 19.62999999523163,
+    "mean": 19.926666670044263
+   },
+   "decLoad": {
+    "fetchMs": 17.239999994635582,
+    "createMs": 23.34000000357628
+   },
+   "decFirstMs": 16.769999995827675,
+   "decode": {
+    "n": 15,
+    "median": 4.3900000005960464,
+    "p10": 4.334999993443489,
+    "p90": 4.4749999940395355,
+    "min": 4.315000012516975,
+    "mean": 4.397999999920527
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 64.39499999582767,
+     "p10": 64.12000000476837,
+     "p90": 64.92000000178814,
+     "min": 63.84000000357628,
+     "mean": 64.45850000083446
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d384_L12_c8_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d384_L12_c8_g16_full_fp16.onnx",
+     "d": 384,
+     "layers": 12,
+     "heads": 6,
+     "hd": 64,
+     "ctx": 8,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 38416720,
+     "bytes": 77021256
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 44.78999999165535,
+    "createMs": 233.64000000059605
+   },
+   "firstPassMs": 51.144999995827675,
+   "pass": {
+    "n": 15,
+    "median": 24.70999999344349,
+    "p10": 24.605000004172325,
+    "p90": 24.814999997615814,
+    "min": 24.519999995827675,
+    "mean": 24.70033333003521
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 24.855000004172325,
+    "p10": 24.685000002384186,
+    "p90": 25.109999999403954,
+    "min": 24.649999991059303,
+    "mean": 24.884666669368745
+   },
+   "decLoad": {
+    "fetchMs": 15.094999998807907,
+    "createMs": 22.33500000834465
+   },
+   "decFirstMs": 17.405000001192093,
+   "decode": {
+    "n": 15,
+    "median": 4.340000003576279,
+    "p10": 4.260000005364418,
+    "p90": 4.5,
+    "min": 4.260000005364418,
+    "mean": 4.361333334445954
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 78.71500000357628,
+     "p10": 78.26500000059605,
+     "p90": 79.67000000178814,
+     "min": 78.00999999046326,
+     "mean": 78.78500000089407
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d512_L4_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d512_L4_c4_g16_full_fp16.onnx",
+     "d": 512,
+     "layers": 4,
+     "heads": 8,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 30205704,
+     "bytes": 60471210
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 34.73999999463558,
+    "createMs": 135.46000000834465
+   },
+   "firstPassMs": 40.90999999642372,
+   "pass": {
+    "n": 15,
+    "median": 11.13000001013279,
+    "p10": 10.509999990463257,
+    "p90": 12.91499999165535,
+    "min": 10.484999999403954,
+    "mean": 11.4126666645209
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 11.080000013113022,
+    "p10": 10.525000005960464,
+    "p90": 12.605000004172325,
+    "min": 10.515000000596046,
+    "mean": 11.351666669050852
+   },
+   "decLoad": {
+    "fetchMs": 15.379999995231628,
+    "createMs": 20.075000002980232
+   },
+   "decFirstMs": 15.859999999403954,
+   "decode": {
+    "n": 15,
+    "median": 4.129999995231628,
+    "p10": 4.069999992847443,
+    "p90": 4.299999997019768,
+    "min": 4.060000002384186,
+    "mean": 4.162333332498869
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 37.11999998986721,
+     "p10": 36.42000000178814,
+     "p90": 37.78999999165535,
+     "min": 36.125,
+     "mean": 36.86950000077486
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d512_L4_c8_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d512_L4_c8_g16_full_fp16.onnx",
+     "d": 512,
+     "layers": 4,
+     "heads": 8,
+     "hd": 64,
+     "ctx": 8,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 30205704,
+     "bytes": 60471210
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 30.955000013113022,
+    "createMs": 130.3999999910593
+   },
+   "firstPassMs": 44.54500000178814,
+   "pass": {
+    "n": 15,
+    "median": 12.394999995827675,
+    "p10": 12.314999997615814,
+    "p90": 12.824999988079071,
+    "min": 12.169999986886978,
+    "mean": 12.520999997854233
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 12.530000001192093,
+    "p10": 12.219999998807907,
+    "p90": 12.959999993443489,
+    "min": 12.209999993443489,
+    "mean": 12.565666667620341
+   },
+   "decLoad": {
+    "fetchMs": 15.935000002384186,
+    "createMs": 20.37999999523163
+   },
+   "decFirstMs": 17.464999988675117,
+   "decode": {
+    "n": 15,
+    "median": 4.659999996423721,
+    "p10": 4.549999997019768,
+    "p90": 4.784999996423721,
+    "min": 4.540000006556511,
+    "mean": 4.666333333651225
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 43.26500000059605,
+     "p10": 42.724999994039536,
+     "p90": 43.96499998867512,
+     "min": 42.70000000298023,
+     "mean": 43.25
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d512_L8_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d512_L8_c4_g16_full_fp16.onnx",
+     "d": 512,
+     "layers": 8,
+     "heads": 8,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 47021836,
+     "bytes": 94157767
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 47.57999999821186,
+    "createMs": 189.9399999976158
+   },
+   "firstPassMs": 55.17000000178814,
+   "pass": {
+    "n": 15,
+    "median": 16.75499999523163,
+    "p10": 16.605000004172325,
+    "p90": 17.33499999344349,
+    "min": 16.544999986886978,
+    "mean": 16.86899999976158
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 16.820000007748604,
+    "p10": 16.634999990463257,
+    "p90": 17.265000000596046,
+    "min": 16.58500000834465,
+    "mean": 16.868333333730696
+   },
+   "decLoad": {
+    "fetchMs": 16.144999995827675,
+    "createMs": 17.150000005960464
+   },
+   "decFirstMs": 21.015000000596046,
+   "decode": {
+    "n": 15,
+    "median": 4.219999998807907,
+    "p10": 4.1099999994039536,
+    "p90": 4.344999998807907,
+    "min": 4.0250000059604645,
+    "mean": 4.217333333690961
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 55.525000005960464,
+     "p10": 54.87999999523163,
+     "p90": 56.35999999940395,
+     "min": 54.83500000834465,
+     "mean": 55.47400000095367
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d512_L8_c8_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d512_L8_c8_g16_full_fp16.onnx",
+     "d": 512,
+     "layers": 8,
+     "heads": 8,
+     "hd": 64,
+     "ctx": 8,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 47021836,
+     "bytes": 94157767
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 49.18000000715256,
+    "createMs": 182.64000000059605
+   },
+   "firstPassMs": 68.96500000357628,
+   "pass": {
+    "n": 15,
+    "median": 21,
+    "p10": 20.804999992251396,
+    "p90": 21.134999990463257,
+    "min": 20.719999998807907,
+    "mean": 20.980999999245007
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 20.885000005364418,
+    "p10": 20.719999998807907,
+    "p90": 21.310000002384186,
+    "min": 20.70499999821186,
+    "mean": 20.98100000123183
+   },
+   "decLoad": {
+    "fetchMs": 17.549999997019768,
+    "createMs": 17.00500001013279
+   },
+   "decFirstMs": 13.83500000834465,
+   "decode": {
+    "n": 15,
+    "median": 4.2149999886751175,
+    "p10": 4.11999998986721,
+    "p90": 4.405000001192093,
+    "min": 4.11999998986721,
+    "mean": 4.297333332896232
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 66.80000001192093,
+     "p10": 66.63500000536442,
+     "p90": 70.87999999523163,
+     "min": 65.73000000417233,
+     "mean": 67.19699999988079
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d512_L12_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d512_L12_c4_g16_full_fp16.onnx",
+     "d": 512,
+     "layers": 12,
+     "heads": 8,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 63837968,
+     "bytes": 127845370
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 73.02000001072884,
+    "createMs": 240.6499999910593
+   },
+   "firstPassMs": 58.67499999701977,
+   "pass": {
+    "n": 15,
+    "median": 23.109999999403954,
+    "p10": 22.799999997019768,
+    "p90": 23.570000007748604,
+    "min": 22.79000000655651,
+    "mean": 23.1653333346049
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 23.200000002980232,
+    "p10": 22.905000001192093,
+    "p90": 23.75499999523163,
+    "min": 22.66499999165535,
+    "mean": 23.24233333071073
+   },
+   "decLoad": {
+    "fetchMs": 16.25499999523163,
+    "createMs": 17.859999999403954
+   },
+   "decFirstMs": 13.344999998807907,
+   "decode": {
+    "n": 15,
+    "median": 4.269999995827675,
+    "p10": 4.180000007152557,
+    "p90": 4.340000003576279,
+    "min": 4.139999985694885,
+    "mean": 4.260333333412806
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 73.92499999701977,
+     "p10": 73.49500000476837,
+     "p90": 74.5300000011921,
+     "min": 72.85999999940395,
+     "mean": 73.85900000035763
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d512_L12_c8_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d512_L12_c8_g16_full_fp16.onnx",
+     "d": 512,
+     "layers": 12,
+     "heads": 8,
+     "hd": 64,
+     "ctx": 8,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "dtype": "fp16",
+     "params": 63837968,
+     "bytes": 127845370
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "P": [
+     2
+    ],
+    "passIters": 15,
+    "frameIters": 10,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 70.93500000238419,
+    "createMs": 236.00999999046326
+   },
+   "firstPassMs": 81.1550000011921,
+   "pass": {
+    "n": 15,
+    "median": 28.930000007152557,
+    "p10": 28.394999995827675,
+    "p90": 29.455000013113022,
+    "min": 28.375,
+    "mean": 28.924333332975706
+   },
+   "commitPass": {
+    "n": 15,
+    "median": 28.900000005960464,
+    "p10": 28.57999999821186,
+    "p90": 29.490000009536743,
+    "min": 28.155000001192093,
+    "mean": 28.886333334445954
+   },
+   "decLoad": {
+    "fetchMs": 15.484999999403954,
+    "createMs": 16.990000009536743
+   },
+   "decFirstMs": 12.945000007748604,
+   "decode": {
+    "n": 15,
+    "median": 4.2249999940395355,
+    "p10": 4.1400000005960464,
+    "p90": 4.325000002980232,
+    "min": 4.1099999994039536,
+    "mean": 4.222666666905085
+   },
+   "frame": {
+    "2": {
+     "n": 10,
+     "median": 91.32999999821186,
+     "p10": 91.04500000178814,
+     "p90": 91.99500000476837,
+     "min": 90.95499999821186,
+     "mean": 91.35150000154972
+    }
+   },
+   "frameIncludesDecode": true
+  }
+ ]
+}

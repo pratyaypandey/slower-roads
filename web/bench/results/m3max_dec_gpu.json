@@ -1,0 +1,329 @@
+{
+ "env": {
+  "ortVersion": "1.30.0",
+  "runtime": "native",
+  "crossOriginIsolated": true,
+  "hardwareConcurrency": 16,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+  "adapter": {
+   "vendor": "apple",
+   "architecture": "metal-3",
+   "device": "",
+   "description": ""
+  },
+  "features": [
+   "depth32float-stencil8",
+   "chromium-experimental-subgroup-matrix",
+   "rg11b10ufloat-renderable",
+   "texture-formats-tier1",
+   "bgra8unorm-storage",
+   "texture-compression-bc",
+   "dual-source-blending",
+   "core-features-and-limits",
+   "float32-filterable",
+   "indirect-first-instance",
+   "texture-compression-astc-sliced-3d",
+   "float32-blendable",
+   "subgroup-size-control",
+   "texture-compression-unaligned",
+   "texture-compression-astc",
+   "texture-compression-etc2",
+   "depth-clip-control",
+   "texture-compression-bc-sliced-3d",
+   "clip-distances",
+   "shader-f16",
+   "texture-formats-tier2",
+   "timestamp-query",
+   "primitive-index",
+   "texture-component-swizzle",
+   "subgroups"
+  ],
+  "limits": {
+   "maxBufferSize": 4294967292,
+   "maxStorageBufferBindingSize": 4294967292
+  }
+ },
+ "date": "2026-10-01T08:49:15.889Z",
+ "results": [
+  {
+   "job": {
+    "dec": {
+     "name": "dec_h128_g16_f64",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp32",
+     "params": 7648643,
+     "bytes": 30858264
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "passIters": 30
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "decLoad": {
+    "fetchMs": 18.564999997615814,
+    "createMs": 306.51500000059605
+   },
+   "decFirstMs": 42.76500000059605,
+   "decode": {
+    "n": 30,
+    "median": 6.8599999994039536,
+    "p10": 6.574999988079071,
+    "p90": 7.544999986886978,
+    "min": 6.2249999940395355,
+    "mean": 6.925833333532015
+   }
+  },
+  {
+   "job": {
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "passIters": 30
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "decLoad": {
+    "fetchMs": 14.924999997019768,
+    "createMs": 89.5949999988079
+   },
+   "decFirstMs": 40.689999997615814,
+   "decode": {
+    "n": 30,
+    "median": 6.375,
+    "p10": 5.795000001788139,
+    "p90": 8.224999994039536,
+    "min": 5.604999989271164,
+    "mean": 6.661166666448116
+   }
+  },
+  {
+   "job": {
+    "dec": {
+     "name": "dec_h128_g16_f128",
+     "kind": "dec",
+     "file": "dec_h128_g16_f128.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 128,
+     "dtype": "fp32",
+     "params": 11190147,
+     "bytes": 45024373
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "passIters": 30
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "decLoad": {
+    "fetchMs": 29.189999997615814,
+    "createMs": 98.32999999821186
+   },
+   "decFirstMs": 31.805000007152557,
+   "decode": {
+    "n": 30,
+    "median": 12.359999999403954,
+    "p10": 12.230000004172325,
+    "p90": 14.38000001013279,
+    "min": 12.180000007152557,
+    "mean": 12.708166667322319
+   }
+  },
+  {
+   "job": {
+    "dec": {
+     "name": "dec_h128_g16_f128_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f128_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 128,
+     "dtype": "fp16",
+     "params": 11190147,
+     "bytes": 22524893
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "passIters": 30
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "decLoad": {
+    "fetchMs": 11.46000000834465,
+    "createMs": 89.4050000011921
+   },
+   "decFirstMs": 20.20999999344349,
+   "decode": {
+    "n": 30,
+    "median": 9.570000007748604,
+    "p10": 9.439999997615814,
+    "p90": 10.099999994039536,
+    "min": 9.409999996423721,
+    "mean": 9.72816666662693
+   }
+  },
+  {
+   "job": {
+    "dec": {
+     "name": "dec_h128_g32_f128",
+     "kind": "dec",
+     "file": "dec_h128_g32_f128.onnx",
+     "hidden": 128,
+     "grid": 32,
+     "frame": 128,
+     "dtype": "fp32",
+     "params": 7648643,
+     "bytes": 30858266
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "passIters": 30
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "decLoad": {
+    "fetchMs": 20.969999998807907,
+    "createMs": 104.6000000089407
+   },
+   "decFirstMs": 23.689999997615814,
+   "decode": {
+    "n": 30,
+    "median": 12.094999998807907,
+    "p10": 11.935000002384186,
+    "p90": 12.269999995827675,
+    "min": 11.855000004172325,
+    "mean": 12.100666667024294
+   }
+  },
+  {
+   "job": {
+    "dec": {
+     "name": "dec_h128_g32_f128_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g32_f128_fp16.onnx",
+     "hidden": 128,
+     "grid": 32,
+     "frame": 128,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439814
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "passIters": 30
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "decLoad": {
+    "fetchMs": 18.739999994635582,
+    "createMs": 84.57500000298023
+   },
+   "decFirstMs": 21.03499999642372,
+   "decode": {
+    "n": 30,
+    "median": 9.300000011920929,
+    "p10": 9.069999992847443,
+    "p90": 9.679999992251396,
+    "min": 9.049999997019768,
+    "mean": 9.305833332240582
+   }
+  },
+  {
+   "job": {
+    "dec": {
+     "name": "dec_h64_g16_f64",
+     "kind": "dec",
+     "file": "dec_h64_g16_f64.onnx",
+     "hidden": 64,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp32",
+     "params": 1915587,
+     "bytes": 7933185
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "passIters": 30
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "decLoad": {
+    "fetchMs": 9.110000014305115,
+    "createMs": 77.375
+   },
+   "decFirstMs": 14.719999998807907,
+   "decode": {
+    "n": 30,
+    "median": 3.2100000083446503,
+    "p10": 3.070000007748604,
+    "p90": 3.4849999994039536,
+    "min": 3.0049999952316284,
+    "mean": 3.2479999999205273
+   }
+  },
+  {
+   "job": {
+    "dec": {
+     "name": "dec_h64_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h64_g16_f64_fp16.onnx",
+     "hidden": 64,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 1915587,
+     "bytes": 3977271
+    },
+    "ep": "webgpu",
+    "kv": "gpu",
+    "runtime": "native",
+    "passIters": 30
+   },
+   "ep": "webgpu",
+   "kv": "gpu",
+   "runtime": "native",
+   "decLoad": {
+    "fetchMs": 4.875,
+    "createMs": 87.2749999910593
+   },
+   "decFirstMs": 14.729999989271164,
+   "decode": {
+    "n": 30,
+    "median": 3.3250000029802322,
+    "p10": 3.144999995827675,
+    "p90": 3.6099999994039536,
+    "min": 3.0499999970197678,
+    "mean": 3.3436666667461394
+   }
+  }
+ ]
+}
