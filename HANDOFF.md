@@ -234,6 +234,28 @@ Goal: measure ms/frame for the shape we'd ship, before spending GPU hours.
 
 ### Step 2: retrain the tokenizer on `train_v2`
 
+> **Done 2026-10-01.** **Chosen: `tokenizer_v2_tc025`**, on the volume at
+> `sr-v2-train:/checkpoints_v2_tc025/tokenizer.pt` and locally at
+> `checkpoints/v2/`. Held-out val:
+> - PSNR 31.1;
+> - 27% of tokens change per frame;
+> - 6.4% flip under 1% noise (the old tokenizer: 41% / 8%).
+>
+> **Also kept, for plug-and-play:**
+> - base `tokenizer_v2` (PSNR 32.8, less stable; a candidate for the
+>   continuous-latent branch);
+> - `tc10` (over-smoothed).
+>
+> **Data:**
+> - The split is `data/train_v2/split.json` (80 / 5 / 5, held out by seed).
+> - tc025 latents are precomputed for all 90 episodes on `sr-v2-{train,val,test}`.
+> - The pre-v2 tokenizers were deleted.
+>
+> Workflow: `docs/TRAINING.md` "v2 tokenizer". Before Step 3, read
+> `docs/research/SYNTHESIS.md`. It reshapes Step 3 into a discrete-vs-continuous
+> head bakeoff, with context corruption, a projected skeleton map and adaLN
+> keys built in.
+
 - The existing `checkpoints/tokenizer*.pt` learned the old renderer's look. The
   new frames have finer detail (grass, painterly trees, bright sky).
 - Before uploading to Modal, shrink the data: convert frames to uint8 (the
