@@ -40,7 +40,8 @@ const CHROME_GL_ARGS = USE_GPU
 const { chromium } = await importPlaywright();
 const server = await serveDir(SIM_DIR);
 const port = server.address().port;
-const browser = await chromium.launch({ args: CHROME_GL_ARGS });
+// SLOWSIM_CHANNEL=chrome uses the system Chrome instead of Playwright's bundled build.
+const browser = await chromium.launch({ args: CHROME_GL_ARGS, channel: process.env.SLOWSIM_CHANNEL });
 const page = await browser.newPage();
 page.on("console", (m) => console.log("[page]", m.text()));
 await page.goto(`http://localhost:${port}/headless/dream_page.html`);

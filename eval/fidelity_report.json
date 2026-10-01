@@ -1,0 +1,145 @@
+{
+ "size": 256,
+ "reference": [
+  "data/reference/drive1"
+ ],
+ "n_ref": 600,
+ "floor_mode": "clips",
+ "gate": 3.0,
+ "ours": {
+  "old_v1": {
+   "dirs": [
+    "data/fidelity_baseline/old_seed1",
+    "data/fidelity_baseline/old_seed2",
+    "data/fidelity_baseline/old_seed3"
+   ],
+   "n": 600,
+   "floor": {
+    "lab_L_sky": 3.7051024372137995,
+    "lab_a_sky": 0.9897014516131721,
+    "lab_b_sky": 2.212335195068646,
+    "edges_sky": 0.0028640003970241052,
+    "lab_L_mid": 2.5366724320327725,
+    "lab_a_mid": 0.750764730363032,
+    "lab_b_mid": 1.3258182915248384,
+    "edges_mid": 0.001350506788579995,
+    "lab_L_ground": 0.6303650275545702,
+    "lab_a_ground": 0.2010974713415637,
+    "lab_b_ground": 0.40937637024950035,
+    "edges_ground": 0.00047800604491882246,
+    "spectrum_slope": 0.009622704654670966,
+    "horizon": 0.0194119492622271,
+    "temporal": 0.002008675551056555
+   },
+   "distance": {
+    "lab_L_sky": 16.5397722983553,
+    "lab_a_sky": 7.904519397580124,
+    "lab_b_sky": 12.303926813513048,
+    "edges_sky": 0.005757605972667187,
+    "lab_L_mid": 21.599055278870356,
+    "lab_a_mid": 4.09783983074063,
+    "lab_b_mid": 12.9828482562292,
+    "edges_mid": 0.0045945217382350545,
+    "lab_L_ground": 20.848259705189893,
+    "lab_a_ground": 7.233276814820989,
+    "lab_b_ground": 7.9137336180521,
+    "edges_ground": 0.018046297408338064,
+    "spectrum_slope": 0.2943507047130522,
+    "horizon": 0.3818462394221655,
+    "temporal": 0.01214329007085288
+   },
+   "ratio": {
+    "lab_L_sky": 4.464052635152793,
+    "lab_a_sky": 7.986771550851104,
+    "lab_b_sky": 5.561511131287351,
+    "edges_sky": 2.0103370022747686,
+    "lab_L_mid": 8.514719916580583,
+    "lab_a_mid": 5.458221017866836,
+    "lab_b_mid": 9.792328510792743,
+    "edges_mid": 3.4020723013662257,
+    "lab_L_ground": 33.073312753514195,
+    "lab_a_ground": 35.9690092897055,
+    "lab_b_ground": 19.33119298807833,
+    "edges_ground": 37.75328283014242,
+    "spectrum_slope": 30.589186229483946,
+    "horizon": 19.67067986135654,
+    "temporal": 6.045421354616259
+   },
+   "worst": [
+    "edges_ground",
+    "lab_a_ground",
+    "lab_L_ground",
+    "spectrum_slope",
+    "horizon"
+   ],
+   "pass": false
+  },
+  "v2": {
+   "dirs": [
+    "data/fidelity_baseline/v2_seed1",
+    "data/fidelity_baseline/v2_seed2",
+    "data/fidelity_baseline/v2_seed3"
+   ],
+   "n": 600,
+   "floor": {
+    "lab_L_sky": 3.7051024372137995,
+    "lab_a_sky": 0.9897014516131721,
+    "lab_b_sky": 2.212335195068646,
+    "edges_sky": 0.0028640003970241052,
+    "lab_L_mid": 2.5366724320327725,
+    "lab_a_mid": 0.750764730363032,
+    "lab_b_mid": 1.3258182915248384,
+    "edges_mid": 0.001350506788579995,
+    "lab_L_ground": 0.6303650275545702,
+    "lab_a_ground": 0.2010974713415637,
+    "lab_b_ground": 0.40937637024950035,
+    "edges_ground": 0.00047800604491882246,
+    "spectrum_slope": 0.009622704654670966,
+    "horizon": 0.0194119492622271,
+    "temporal": 0.002008675551056555
+   },
+   "distance": {
+    "lab_L_sky": 7.746003865344285,
+    "lab_a_sky": 2.7572830912576376,
+    "lab_b_sky": 7.808562746102484,
+    "edges_sky": 0.002594887603967307,
+    "lab_L_mid": 3.6335868265356845,
+    "lab_a_mid": 2.317820286412714,
+    "lab_b_mid": 6.477030406552247,
+    "edges_mid": 0.004756876694335671,
+    "lab_L_ground": 4.540001187506316,
+    "lab_a_ground": 1.0100543244390994,
+    "lab_b_ground": 1.8282115668433272,
+    "edges_ground": 0.0022217779766411714,
+    "spectrum_slope": 0.020168703993673133,
+    "horizon": 0.05930522463326352,
+    "temporal": 0.0022631390837577325
+   },
+   "ratio": {
+    "lab_L_sky": 2.090631499832216,
+    "lab_a_sky": 2.7859745853291225,
+    "lab_b_sky": 3.5295568065399756,
+    "edges_sky": 0.9060360489696772,
+    "lab_L_mid": 1.4324225629810212,
+    "lab_a_mid": 3.0872791337599637,
+    "lab_b_mid": 4.885307774041149,
+    "edges_mid": 3.522290102175155,
+    "lab_L_ground": 7.20217808579695,
+    "lab_a_ground": 5.022710219580652,
+    "lab_b_ground": 4.46584536799009,
+    "edges_ground": 4.648012300803614,
+    "spectrum_slope": 2.0959496022652035,
+    "horizon": 3.055088586526603,
+    "temporal": 1.1266822471988225
+   },
+   "worst": [
+    "lab_L_ground",
+    "lab_a_ground",
+    "lab_b_mid",
+    "edges_ground",
+    "lab_b_ground"
+   ],
+   "pass": false
+  }
+ }
+}
