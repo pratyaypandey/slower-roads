@@ -25,3 +25,4 @@ eval/tokenizer_ab/checkpoints_lowloss/
 
 # Model checkpoints (any extension, incl. .pth / metrics) stay out of git
 /checkpoints/
+/dist/
