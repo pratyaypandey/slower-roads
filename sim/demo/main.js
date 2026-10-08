@@ -5,6 +5,7 @@
 // touch the core or renderer — it only consumes their public API (see sim/API.md).
 
 import { SlowSim, DIAL_SCHEMA, DIAL_KEYS } from '../core/index.js';
+import { keysToAction } from '../core/input.js';
 import { SimRenderer } from '../render/renderer.js';
 
 const canvas = document.getElementById('view');
@@ -37,19 +38,16 @@ window.addEventListener('keydown', (e) => {
   if (DRIVE_KEYS.has(k)) e.preventDefault(); // keep arrows from scrolling the panel
 });
 window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+const keyState = () => ({
+  w: keys['w'] || keys['arrowup'], s: keys['s'] || keys['arrowdown'],
+  a: keys['a'] || keys['arrowleft'], d: keys['d'] || keys['arrowright'],
+});
+
 // Drop held keys if focus leaves the window, so the car doesn't drive off unattended.
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 
 let steer = 0;
 let throttle = 0;
-const STEER_RISE = 7.5;
-const STEER_RETURN = 11;
-const THROTTLE_RATE = 8;
-const KEYBOARD_STEER = 0.82;
-
-function approachExp(cur, target, rate, dt) {
-  return cur + (target - cur) * (1 - Math.exp(-rate * dt));
-}
 
 // --- Dial sliders (generic — iterate the schema so new dials appear automatically) -
 const dialEls = {}; // key -> { slider, valEl }
@@ -283,9 +281,6 @@ function frame(now) {
   if (dt > 0.25) dt = 0.25;         // clamp long pauses (tab switch) — no death spiral
   acc += dt;
 
-  const steerTarget = ((keys['a'] || keys['arrowleft'] ? 1 : 0) -
-    (keys['d'] || keys['arrowright'] ? 1 : 0)) * KEYBOARD_STEER;
-  const throttleTarget = (keys['w'] || keys['arrowup'] ? 1 : 0) - (keys['s'] || keys['arrowdown'] ? 1 : 0);
 
   let steps = 0;
   while (acc >= FIXED && steps < MAX_STEPS) {
@@ -295,10 +290,8 @@ function frame(now) {
       action = sim.autopilotAction();     // deterministic road-follower
       steer = action.steer; throttle = action.throttle; // stay in sync for a smooth handoff
     } else {
-      const steerRate = steerTarget === 0 ? STEER_RETURN : STEER_RISE;
-      steer = approachExp(steer, steerTarget, steerRate, FIXED);
-      throttle = approachExp(throttle, throttleTarget, THROTTLE_RATE, FIXED);
-      action = { steer, throttle };
+      action = keysToAction({ steer, throttle }, keyState(), FIXED);
+      ({ steer, throttle } = action);
     }
     sim.step(action);
     renderer.stepCamera(sim, FIXED);

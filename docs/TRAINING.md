@@ -130,6 +130,62 @@ The state path trains `train_state_dynamics` today with no GPU. The pixel path
 feeds the tokenizer + AR/flow dynamics. For a bigger/varied dataset, generate
 several seeds into separate dirs and train on whichever `--data` dir you want.
 
+### Multi-episode dataset with simulated keystrokes (`train_v2`)
+
+```bash
+# ~30 min for 3 h on an Apple-silicon Mac (Metal); resumable, re-run to continue
+SLOWSIM_ANGLE=metal SLOWSIM_CHANNEL=chrome SLOWSIM_GL=gpu \
+  node sim/headless/generate_dataset.mjs --hours 3 --out data/train_v2   # [--steps 3600] [--size 64]
+```
+
+- **Episodes.** Two-minute episodes (3,600 steps at 30 fps), each a fresh world
+  (seed), each in the standard manifest format.
+- **Extra per-sample field.** `keys` holds the WASD keys "held" that step.
+- **Extra manifest fields.** `policy`, `policySeed` and `stats` (off-road fraction,
+  mean speed).
+- **Index.** `data/train_v2/index.json` lists every episode.
+- **Profile mix:** 25% `cruise`, 25% `keys_lane`, 25% `keys_explore`, 12%
+  `lane_change`, 13% `dial_mix`. Profiles are defined in `sim/core/policies.js`.
+- **Keyboard path.** Keyboard profiles go through `sim/core/input.js`, the same
+  key-to-action smoothing the demo applies to a human player.
+
+Each episode is a normal dataset, and `--data` takes several, e.g.
+`--data data/train_v2/ep*` (all of them) or `--data data/train_v2/ep*_cruise_*`
+(one profile).
+
+### v2 tokenizer on `train_v2` (renderer v2; replaces every earlier tokenizer)
+
+The pre-v2 tokenizers (`tokenizer.pt`, `tokenizer_tc.pt`) learned the old
+renderer. They collapse on v2 frames and were deleted. The workflow:
+
+```bash
+# 1. pack frames: per-frame float32 .npy -> one uint8 frames_u8.npy per episode (17 GB -> 3.7 GB, bit-exact)
+python -m model.data.frames pack data/train_v2/ep*
+# 2. hold out whole episodes (= world seeds) across all 5 profiles: last per profile -> test, previous -> val
+python -m model.data.frames split data/train_v2          # writes data/train_v2/split.json (80 / 5 / 5)
+# 3. upload only manifest.json + frames_u8.npy (hardlinked staging dir data/v2_upload/{train,val,test})
+export MODAL_PROFILE=slower-roads-m3
+modal volume put sr-v2-train data/v2_upload/train /data/train_v2   # + split.json
+modal volume put sr-v2-val   data/v2_upload/val   /data/train_v2
+modal volume put sr-v2-test  data/v2_upload/test  /data/train_v2
+# 4. train (A100, detached), eval on val, then precompute latents for all 90 episodes
+modal deploy deploy/modal_v2.py
+uv run --with modal python deploy/modal_v2.py spawn-tokenizer --epochs 20
+uv run --with modal python deploy/modal_v2.py spawn-eval --eval-split val
+uv run --with modal python deploy/modal_v2.py latents
+```
+
+All readers (`train_tokenizer --split`, `SimSequenceDataset`,
+`precompute_latents`, `eval_tokenizer`) go through `model/data/frames.py`. It
+prefers `frames_u8.npy` and falls back to per-frame files.
+
+`eval.eval_tokenizer --split data/train_v2/split.json:val` reports, per profile:
+- L1 / PSNR;
+- `flip`, the fraction of tokens that change between consecutive frames;
+- `flip_static`, the same on near-static pairs (this was the M2 root cause);
+- `flip_noise`, the flip rate under 1% pixel noise;
+- codebook usage and perplexity.
+
 ## Step 1 — tokenizer (M1)
 
 ```bash

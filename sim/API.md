@@ -10,7 +10,10 @@ Design rationale lives in `../plans/SIM.md`.
 sim/
   core/index.js      # SlowSim + dial schema (no Three.js dependency)
   render/renderer.js # SimRenderer (imports the bare specifier "three")
-  vendor/three.module.js  # vendored Three.js r160
+  render/shaders.js  # GLSL: shared light/haze model, terrain, cards, sky, water, car
+  render/textures.js # seeded procedural textures (noise, leaf/conifer/grass cards)
+  render/car.js      # the white hatchback (geometry solved from reference footage)
+  vendor/three.module.js  # vendored Three.js r160 (+ jsm/utils/BufferGeometryUtils.js)
 ```
 
 Because `render/renderer.js` imports `"three"`, any HTML page loading it needs an
@@ -53,24 +56,36 @@ the list, so new dials appear automatically.
 
 ## Renderer — `SimRenderer`
 
+The v2 engine, rebuilt clean-room to match recorded Slow Roads footage
+(`../docs/FIDELITY.md`). Every material is a custom shader authored in display
+colours with no tone mapping or post-processing, so what the canvas shows and what
+`capture()` returns are the same image.
+
 ```js
 import { SimRenderer } from '../render/renderer.js';
 
-const r = new SimRenderer(canvasEl);   // canvas is a normal <canvas>
+const r = new SimRenderer(canvasEl, { dataSize: 64 });
 r.setDisplaySize(canvas.clientWidth, canvas.clientHeight); // CSS px of the display
-r.render(sim);                         // draws sim.state; call every frame
+r.stepCamera(sim, sim.dt);             // once per fixed sim step (deterministic chase cam)
+r.render(sim, { alpha, prevCar });     // draw; interp optional (smooth display between steps)
 ```
 
 | Member | Description |
 |---|---|
-| `new SimRenderer(canvas, opts?)` | Renders internally at low res (default 160×128) then posterizes to the canvas. |
-| `r.render(sim)` | Update + draw one frame from `sim.state`. |
-| `r.setDisplaySize(w, h)` | Set the display backing-store size (call on resize). Internal res is fixed. |
-| `r.setPosterize({ levels, softness, saturation })` | Tune the band count / edge softness / saturation live. |
-| `r.capture()` | Returns the low-res RGBA `Uint8Array` (the training-data RGB head; demo may ignore). |
+| `new SimRenderer(canvas, { dataSize })` | Full-resolution renderer; `dataSize` is the default `capture()` size. |
+| `r.stepCamera(sim, dt)` | Advance the chase camera one fixed step (call once per `sim.step`). Near-rigid mount, slight yaw lag. |
+| `r.render(sim, interp?)` | Update + draw one frame. `interp = { alpha, prevCar }` interpolates between fixed steps. |
+| `r.capture(size?)` | Square RGBA `Uint8Array` (bottom-left origin): the display image at aspect 1, supersampled, box-filtered, then softened slightly to match the reference. |
+| `r.captureChannels(size?)` | `{ rgb, depth, size }`: `capture()` plus a packed depth map. |
+| `r.setDisplaySize(w, h)` / `r.setQuality('low'\|'medium'\|'high')` / `r.setExposure(v)` | Display size, pixel-ratio tier, global light scale. |
+| `r.resetPresentation()` | Drop camera/terrain/vegetation caches (after `sim.reset`). |
+| `r.stats()` | `{ calls, triangles, instances }` for a diagnostics overlay. |
 
-The canvas is upscaled from the low internal resolution with nearest-neighbour, so the
-display should use `image-rendering: pixelated` for a crisp dream look.
+What it draws is the sim's own world, so the oracle state in a dataset describes
+exactly what is on screen. The road, heightfield, hillsides and tree/rock/bush/grass
+scatter come from `sim/core`. Verge grass and guardrails are render-only decoration,
+deterministic in seed + arc-length; guardrails have no collision. Dials drive the
+look: time of day, fog, rain, snow, biome tint, stars.
 
 ## Minimal loop (what the demo wires up)
 

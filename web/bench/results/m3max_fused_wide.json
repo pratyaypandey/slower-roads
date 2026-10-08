@@ -1,0 +1,2172 @@
+{
+ "env": {
+  "ortVersion": "1.30.0",
+  "runtime": "native",
+  "crossOriginIsolated": true,
+  "hardwareConcurrency": 16,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+  "adapter": {
+   "vendor": "apple",
+   "architecture": "metal-3",
+   "device": "",
+   "description": ""
+  },
+  "features": [
+   "depth32float-stencil8",
+   "chromium-experimental-subgroup-matrix",
+   "rg11b10ufloat-renderable",
+   "texture-formats-tier1",
+   "bgra8unorm-storage",
+   "texture-compression-bc",
+   "dual-source-blending",
+   "core-features-and-limits",
+   "float32-filterable",
+   "indirect-first-instance",
+   "texture-compression-astc-sliced-3d",
+   "float32-blendable",
+   "subgroup-size-control",
+   "texture-compression-unaligned",
+   "texture-compression-astc",
+   "texture-compression-etc2",
+   "depth-clip-control",
+   "texture-compression-bc-sliced-3d",
+   "clip-distances",
+   "shader-f16",
+   "texture-formats-tier2",
+   "timestamp-query",
+   "primitive-index",
+   "texture-component-swizzle",
+   "subgroups"
+  ],
+  "limits": {
+   "maxBufferSize": 4294967292,
+   "maxStorageBufferBindingSize": 4294967292
+  }
+ },
+ "date": "2026-10-01T09:00:39.575Z",
+ "results": [
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d256_L4_c4_g16_fsq_fp16",
+     "kind": "dyn",
+     "file": "dyn_d256_L4_c4_g16_fsq_fp16.onnx",
+     "d": 256,
+     "layers": 4,
+     "heads": 4,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "dtype": "fp16",
+     "params": 7607688,
+     "bytes": 15293521
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 20.219999998807907,
+    "createMs": 361.5849999934435
+   },
+   "firstPassMs": 69.64000000059605,
+   "pass": {
+    "n": 20,
+    "median": 4.405000001192093,
+    "p10": 4.260000005364418,
+    "p90": 4.700000002980232,
+    "min": 4.245000004768372,
+    "mean": 4.4157499998807905
+   },
+   "commitPass": {
+    "n": 20,
+    "median": 4.3599999994039536,
+    "p10": 4.280000001192093,
+    "p90": 4.5,
+    "min": 4.2650000005960464,
+    "mean": 4.383250000327825
+   },
+   "decLoad": {
+    "fetchMs": 16.609999999403954,
+    "createMs": 22.724999994039536
+   },
+   "decFirstMs": 17.79000000655651,
+   "decode": {
+    "n": 20,
+    "median": 3.5,
+    "p10": 3.449999988079071,
+    "p90": 3.6299999952316284,
+    "min": 3.445000007748604,
+    "mean": 3.554499999433756
+   },
+   "frame": {
+    "1": {
+     "n": 13,
+     "median": 12.25,
+     "p10": 12.060000002384186,
+     "p90": 12.635000005364418,
+     "min": 12.019999995827675,
+     "mean": 12.325384615705563
+    },
+    "2": {
+     "n": 13,
+     "median": 16.54000000655651,
+     "p10": 16.32999999821186,
+     "p90": 16.96500000357628,
+     "min": 16.310000002384186,
+     "mean": 17.199615384523685
+    },
+    "3": {
+     "n": 13,
+     "median": 21.524999991059303,
+     "p10": 20.980000004172325,
+     "p90": 22.280000001192093,
+     "min": 20.775000005960464,
+     "mean": 21.542692308242504
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d256_L4_c4_g16_full_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d256_L4_c4_g16_full_fused_fp16.onnx",
+     "d": 256,
+     "layers": 4,
+     "heads": 4,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 10875784,
+     "bytes": 28302176
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d256_L4_c4_g16_fsq_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d256_L4_c4_g16_fsq_fused_fp16.onnx",
+     "d": 256,
+     "layers": 4,
+     "heads": 4,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 7607688,
+     "bytes": 21772071
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d384_L4_c4_g16_full_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d384_L4_c4_g16_full_fused_fp16.onnx",
+     "d": 384,
+     "layers": 4,
+     "heads": 6,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 19483976,
+     "bytes": 45578208
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d384_L4_c4_g16_fsq_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d384_L4_c4_g16_fsq_fused_fp16.onnx",
+     "d": 384,
+     "layers": 4,
+     "heads": 6,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 14581832,
+     "bytes": 35780007
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d384_L6_c4_g16_full_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d384_L6_c4_g16_full_fused_fp16.onnx",
+     "d": 384,
+     "layers": 6,
+     "heads": 6,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 24217162,
+     "bytes": 58245556
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d384_L6_c4_g16_fsq_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d384_L6_c4_g16_fsq_fused_fp16.onnx",
+     "d": 384,
+     "layers": 6,
+     "heads": 6,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 19315018,
+     "bytes": 48447364
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d512_L4_c4_g16_full_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d512_L4_c4_g16_full_fused_fp16.onnx",
+     "d": 512,
+     "layers": 4,
+     "heads": 8,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 30205704,
+     "bytes": 67081330
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d512_L4_c4_g16_fsq_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d512_L4_c4_g16_fsq_fused_fp16.onnx",
+     "d": 512,
+     "layers": 4,
+     "heads": 8,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 23669512,
+     "bytes": 54015033
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d512_L6_c4_g16_full_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d512_L6_c4_g16_full_fused_fp16.onnx",
+     "d": 512,
+     "layers": 6,
+     "heads": 8,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 38613770,
+     "bytes": 87095374
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d512_L6_c4_g16_fsq_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d512_L6_c4_g16_fsq_fused_fp16.onnx",
+     "d": 512,
+     "layers": 6,
+     "heads": 8,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 32077578,
+     "bytes": 74029086
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d768_L4_c4_g16_full_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d768_L4_c4_g16_full_fused_fp16.onnx",
+     "d": 768,
+     "layers": 4,
+     "heads": 12,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 57989768,
+     "bytes": 122768770
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d768_L4_c4_g16_fsq_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d768_L4_c4_g16_fsq_fused_fp16.onnx",
+     "d": 768,
+     "layers": 4,
+     "heads": 12,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 48185480,
+     "bytes": 103166281
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d384_L8_c4_g16_full_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d384_L8_c4_g16_full_fused_fp16.onnx",
+     "d": 384,
+     "layers": 8,
+     "heads": 6,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 28950348,
+     "bytes": 70912943
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d384_L8_c4_g16_fsq_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d384_L8_c4_g16_fsq_fused_fp16.onnx",
+     "d": 384,
+     "layers": 8,
+     "heads": 6,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 24048204,
+     "bytes": 61114760
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d512_L4_c8_g16_full_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d512_L4_c8_g16_full_fused_fp16.onnx",
+     "d": 512,
+     "layers": 4,
+     "heads": 8,
+     "hd": 64,
+     "ctx": 8,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 30205704,
+     "bytes": 71308482
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d512_L4_c8_g16_fsq_fused_fp16",
+     "kind": "dyn",
+     "file": "dyn_d512_L4_c8_g16_fsq_fused_fp16.onnx",
+     "d": 512,
+     "layers": 4,
+     "heads": 8,
+     "hd": 64,
+     "ctx": 8,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": true,
+     "dtype": "fp16",
+     "params": 23669512,
+     "bytes": 58242185
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "error": "[stage dyn-first] Error: failed to call OrtRun(). ERROR_CODE: 1, ERROR_MESSAGE: WebGPU validation failed. [Buffer (unlabeled)] bound with size 4 at group 0, binding 0 is too small. The pipeline ([ComputePipeline (unlabeled)]) requires a buffer binding which is at least 16 bytes.\n - While encoding [ComputePassEncoder (unlabeled)].DispatchWorkgroups(1, 1, 1).\n - While finishing [CommandEncoder (unlabeled)].\n\n    at S (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:26300)\n    at Ne (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:27999)\n    at async Ke.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:7:35538)\n    at async t.run (http://localhost:58642/node_modules/onnxruntime-web/dist/ort.webgpu.min.mjs:6:18304)\n    at async DynCaptured.pass (http://localhost:58642/worker.js?rt=native:144:17)\n    at async benchJob (http://localhost:58642/worker.js?rt=native:224:5)\n    at async self.onmessage (http://localhost:58642/worker.js?rt=native:314:22)"
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d768_L2_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d768_L2_c4_g16_full_fp16.onnx",
+     "d": 768,
+     "layers": 2,
+     "heads": 12,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": false,
+     "dtype": "fp16",
+     "params": 39086214,
+     "bytes": 78199836
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 51.150000005960464,
+    "createMs": 134.28999999165535
+   },
+   "firstPassMs": 67.18500000238419,
+   "pass": {
+    "n": 20,
+    "median": 6.954999998211861,
+    "p10": 6.834999993443489,
+    "p90": 7.654999986290932,
+    "min": 6.809999987483025,
+    "mean": 7.059749995917082
+   },
+   "commitPass": {
+    "n": 20,
+    "median": 6.924999997019768,
+    "p10": 6.8499999940395355,
+    "p90": 7.315000012516975,
+    "min": 6.800000011920929,
+    "mean": 6.996750001609326
+   },
+   "decLoad": {
+    "fetchMs": 15.015000000596046,
+    "createMs": 19.319999992847443
+   },
+   "decFirstMs": 14.805000007152557,
+   "decode": {
+    "n": 20,
+    "median": 3.5349999964237213,
+    "p10": 3.4650000035762787,
+    "p90": 3.6299999952316284,
+    "min": 3.4500000029802322,
+    "mean": 3.534250000119209
+   },
+   "frame": {
+    "1": {
+     "n": 13,
+     "median": 17.304999992251396,
+     "p10": 17.12000000476837,
+     "p90": 17.594999998807907,
+     "min": 17.12000000476837,
+     "mean": 17.350000000916996
+    },
+    "2": {
+     "n": 13,
+     "median": 24.174999997019768,
+     "p10": 24.030000001192093,
+     "p90": 24.29500000178814,
+     "min": 23.969999998807907,
+     "mean": 24.164230768497173
+    },
+    "3": {
+     "n": 13,
+     "median": 30.924999997019768,
+     "p10": 30.79000000655651,
+     "p90": 31.150000005960464,
+     "min": 30.78999999165535,
+     "mean": 30.95307692197653
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d768_L2_c4_g16_fsq_fp16",
+     "kind": "dyn",
+     "file": "dyn_d768_L2_c4_g16_fsq_fp16.onnx",
+     "d": 768,
+     "layers": 2,
+     "heads": 12,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": false,
+     "dtype": "fp16",
+     "params": 29281926,
+     "bytes": 58597331
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 37.42000000178814,
+    "createMs": 118.93999999761581
+   },
+   "firstPassMs": 36.49500000476837,
+   "pass": {
+    "n": 20,
+    "median": 5.200000002980232,
+    "p10": 5.165000006556511,
+    "p90": 5.33500000834465,
+    "min": 5.155000001192093,
+    "mean": 5.220500002801418
+   },
+   "commitPass": {
+    "n": 20,
+    "median": 5.165000006556511,
+    "p10": 5.129999995231628,
+    "p90": 5.314999997615814,
+    "min": 5.0999999940395355,
+    "mean": 5.181749998778105
+   },
+   "decLoad": {
+    "fetchMs": 15.025000005960464,
+    "createMs": 18.564999997615814
+   },
+   "decFirstMs": 14.785000011324883,
+   "decode": {
+    "n": 20,
+    "median": 3.5349999964237213,
+    "p10": 3.469999998807907,
+    "p90": 3.6599999964237213,
+    "min": 3.4549999982118607,
+    "mean": 3.5530000008642673
+   },
+   "frame": {
+    "1": {
+     "n": 13,
+     "median": 13.984999999403954,
+     "p10": 13.88000001013279,
+     "p90": 14.090000003576279,
+     "min": 13.859999999403954,
+     "mean": 13.981538460804867
+    },
+    "2": {
+     "n": 13,
+     "median": 19.17000000178814,
+     "p10": 19.04500000178814,
+     "p90": 19.45499999821186,
+     "min": 18.984999999403954,
+     "mean": 19.21000000032095
+    },
+    "3": {
+     "n": 13,
+     "median": 24.405000001192093,
+     "p10": 24.185000002384186,
+     "p90": 24.650000005960464,
+     "min": 24.174999997019768,
+     "mean": 24.433461538874187
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d768_L4_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d768_L4_c4_g16_full_fp16.onnx",
+     "d": 768,
+     "layers": 4,
+     "heads": 12,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": false,
+     "dtype": "fp16",
+     "params": 57989768,
+     "bytes": 116027988
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 68.85999999940395,
+    "createMs": 156.375
+   },
+   "firstPassMs": 43.83499999344349,
+   "pass": {
+    "n": 20,
+    "median": 10.984999999403954,
+    "p10": 10.95499999821186,
+    "p90": 11.049999997019768,
+    "min": 10.894999995827675,
+    "mean": 11.810250001400709
+   },
+   "commitPass": {
+    "n": 20,
+    "median": 11.019999995827675,
+    "p10": 10.975000008940697,
+    "p90": 11.200000002980232,
+    "min": 10.964999988675117,
+    "mean": 11.063750000298024
+   },
+   "decLoad": {
+    "fetchMs": 17.82999999821186,
+    "createMs": 19.405000001192093
+   },
+   "decFirstMs": 15.019999995827675,
+   "decode": {
+    "n": 20,
+    "median": 3.489999994635582,
+    "p10": 3.429999992251396,
+    "p90": 3.5699999928474426,
+    "min": 3.394999995827675,
+    "mean": 3.487250000983477
+   },
+   "frame": {
+    "1": {
+     "n": 13,
+     "median": 25.649999991059303,
+     "p10": 25.515000000596046,
+     "p90": 25.810000002384186,
+     "min": 25.510000005364418,
+     "mean": 25.643461539195133
+    },
+    "2": {
+     "n": 13,
+     "median": 36.59499999880791,
+     "p10": 36.3999999910593,
+     "p90": 36.83999998867512,
+     "min": 36.36499999463558,
+     "mean": 36.61192307678553
+    },
+    "3": {
+     "n": 13,
+     "median": 47.61499999463558,
+     "p10": 47.35999999940395,
+     "p90": 47.75,
+     "min": 47.315000012516975,
+     "mean": 47.60923076936832
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d768_L4_c4_g16_fsq_fp16",
+     "kind": "dyn",
+     "file": "dyn_d768_L4_c4_g16_fsq_fp16.onnx",
+     "d": 768,
+     "layers": 4,
+     "heads": 12,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": false,
+     "dtype": "fp16",
+     "params": 48185480,
+     "bytes": 96425486
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 59.16500000655651,
+    "createMs": 152.71499998867512
+   },
+   "firstPassMs": 50.99499998986721,
+   "pass": {
+    "n": 20,
+    "median": 9.384999990463257,
+    "p10": 9.344999998807907,
+    "p90": 9.509999990463257,
+    "min": 9.325000002980232,
+    "mean": 9.39574999883771
+   },
+   "commitPass": {
+    "n": 20,
+    "median": 9.379999995231628,
+    "p10": 9.32999999821186,
+    "p90": 9.435000002384186,
+    "min": 9.320000007748604,
+    "mean": 9.376000002026558
+   },
+   "decLoad": {
+    "fetchMs": 18.385000005364418,
+    "createMs": 18.66499999165535
+   },
+   "decFirstMs": 18.680000007152557,
+   "decode": {
+    "n": 20,
+    "median": 3.5,
+    "p10": 3.4300000071525574,
+    "p90": 3.6500000059604645,
+    "min": 3.429999992251396,
+    "mean": 3.5077500008046627
+   },
+   "frame": {
+    "1": {
+     "n": 13,
+     "median": 22.314999997615814,
+     "p10": 22.25500001013279,
+     "p90": 22.59000000357628,
+     "min": 22.25,
+     "mean": 22.37230769258279
+    },
+    "2": {
+     "n": 13,
+     "median": 31.74500000476837,
+     "p10": 31.649999991059303,
+     "p90": 32.060000002384186,
+     "min": 31.625,
+     "mean": 31.80653846149261
+    },
+    "3": {
+     "n": 13,
+     "median": 41.21999999880791,
+     "p10": 41.025000005960464,
+     "p90": 41.29999999701977,
+     "min": 40.94499999284744,
+     "mean": 41.196923075960235
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d768_L6_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d768_L6_c4_g16_full_fp16.onnx",
+     "d": 768,
+     "layers": 6,
+     "heads": 12,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": false,
+     "dtype": "fp16",
+     "params": 76893322,
+     "bytes": 153856107
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 84.83499999344349,
+    "createMs": 201.31500001251698
+   },
+   "firstPassMs": 50.03000000119209,
+   "pass": {
+    "n": 20,
+    "median": 14.709999993443489,
+    "p10": 14.689999997615814,
+    "p90": 14.95499999821186,
+    "min": 14.67000000178814,
+    "mean": 14.773999999463559
+   },
+   "commitPass": {
+    "n": 20,
+    "median": 14.775000005960464,
+    "p10": 14.695000007748604,
+    "p90": 14.929999992251396,
+    "min": 14.655000001192093,
+    "mean": 14.796499998867512
+   },
+   "decLoad": {
+    "fetchMs": 15.935000002384186,
+    "createMs": 19.055000007152557
+   },
+   "decFirstMs": 15.344999998807907,
+   "decode": {
+    "n": 20,
+    "median": 3.520000010728836,
+    "p10": 3.469999998807907,
+    "p90": 3.5799999982118607,
+    "min": 3.4600000083446503,
+    "mean": 3.518749999254942
+   },
+   "frame": {
+    "1": {
+     "n": 13,
+     "median": 33.12999999523163,
+     "p10": 32.98499999940395,
+     "p90": 33.67000000178814,
+     "min": 32.945000007748604,
+     "mean": 33.1949999997249
+    },
+    "2": {
+     "n": 13,
+     "median": 47.90999999642372,
+     "p10": 47.69499999284744,
+     "p90": 48.25,
+     "min": 47.57999999821186,
+     "mean": 47.91115384720839
+    },
+    "3": {
+     "n": 13,
+     "median": 62.66500000655651,
+     "p10": 62.41500000655651,
+     "p90": 62.939999997615814,
+     "min": 62.37000000476837,
+     "mean": 62.68730769363734
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d768_L6_c4_g16_fsq_fp16",
+     "kind": "dyn",
+     "file": "dyn_d768_L6_c4_g16_fsq_fp16.onnx",
+     "d": 768,
+     "layers": 6,
+     "heads": 12,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": false,
+     "dtype": "fp16",
+     "params": 67089034,
+     "bytes": 134253605
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 77.42499999701977,
+    "createMs": 189.1899999976158
+   },
+   "firstPassMs": 51.57999999821186,
+   "pass": {
+    "n": 20,
+    "median": 13.104999989271164,
+    "p10": 13.069999992847443,
+    "p90": 13.469999998807907,
+    "min": 13.034999996423721,
+    "mean": 13.174500000476836
+   },
+   "commitPass": {
+    "n": 20,
+    "median": 13.234999999403954,
+    "p10": 13.159999996423721,
+    "p90": 13.469999998807907,
+    "min": 13.120000004768372,
+    "mean": 13.273000001162291
+   },
+   "decLoad": {
+    "fetchMs": 17.839999988675117,
+    "createMs": 17.50500001013279
+   },
+   "decFirstMs": 15.684999987483025,
+   "decode": {
+    "n": 20,
+    "median": 3.425000011920929,
+    "p10": 3.3900000005960464,
+    "p90": 3.584999993443489,
+    "min": 3.3599999994039536,
+    "mean": 3.4685000002384188
+   },
+   "frame": {
+    "1": {
+     "n": 13,
+     "median": 29.935000002384186,
+     "p10": 29.75,
+     "p90": 30.109999999403954,
+     "min": 29.724999994039536,
+     "mean": 29.91538461469687
+    },
+    "2": {
+     "n": 13,
+     "median": 43.10999999940395,
+     "p10": 42.929999992251396,
+     "p90": 43.474999994039536,
+     "min": 42.87000000476837,
+     "mean": 43.193461538507385
+    },
+    "3": {
+     "n": 13,
+     "median": 56.11999998986721,
+     "p10": 55.854999989271164,
+     "p90": 56.50500001013279,
+     "min": 55.76500000059605,
+     "mean": 56.1961538459246
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d1024_L2_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d1024_L2_c4_g16_full_fp16.onnx",
+     "d": 1024,
+     "layers": 2,
+     "heads": 16,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": false,
+     "dtype": "fp16",
+     "params": 60634630,
+     "bytes": 121290536
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 70.88499999046326,
+    "createMs": 146.0649999976158
+   },
+   "firstPassMs": 40.564999997615814,
+   "pass": {
+    "n": 20,
+    "median": 8.564999997615814,
+    "p10": 8.464999988675117,
+    "p90": 8.784999996423721,
+    "min": 8.399999991059303,
+    "mean": 8.562000001221895
+   },
+   "commitPass": {
+    "n": 20,
+    "median": 8.479999989271164,
+    "p10": 8.449999988079071,
+    "p90": 8.524999991059303,
+    "min": 8.429999992251396,
+    "mean": 8.480749998241663
+   },
+   "decLoad": {
+    "fetchMs": 17.90999999642372,
+    "createMs": 17.474999994039536
+   },
+   "decFirstMs": 13.424999997019768,
+   "decode": {
+    "n": 20,
+    "median": 3.4000000059604645,
+    "p10": 3.3699999898672104,
+    "p90": 3.6499999910593033,
+    "min": 3.355000004172325,
+    "mean": 3.4392500005662443
+   },
+   "frame": {
+    "1": {
+     "n": 13,
+     "median": 20.11999998986721,
+     "p10": 19.989999994635582,
+     "p90": 20.299999997019768,
+     "min": 19.95499999821186,
+     "mean": 20.14307692188483
+    },
+    "2": {
+     "n": 13,
+     "median": 28.724999994039536,
+     "p10": 28.58499999344349,
+     "p90": 28.90499998629093,
+     "min": 28.565000012516975,
+     "mean": 28.74730769258279
+    },
+    "3": {
+     "n": 13,
+     "median": 37.96000000834465,
+     "p10": 37.13500000536442,
+     "p90": 38.19999998807907,
+     "min": 37.05500000715256,
+     "mean": 37.83307692293938
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d1024_L2_c4_g16_fsq_fp16",
+     "kind": "dyn",
+     "file": "dyn_d1024_L2_c4_g16_fsq_fp16.onnx",
+     "d": 1024,
+     "layers": 2,
+     "heads": 16,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": false,
+     "dtype": "fp16",
+     "params": 47562246,
+     "bytes": 95151839
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 61.05500000715256,
+    "createMs": 126.84999999403954
+   },
+   "firstPassMs": 35.09000000357628,
+   "pass": {
+    "n": 20,
+    "median": 6.829999998211861,
+    "p10": 6.709999993443489,
+    "p90": 6.9100000113248825,
+    "min": 6.590000003576279,
+    "mean": 6.809500000625849
+   },
+   "commitPass": {
+    "n": 20,
+    "median": 6.83500000834465,
+    "p10": 6.784999996423721,
+    "p90": 6.909999996423721,
+    "min": 6.644999995827675,
+    "mean": 6.833749999850989
+   },
+   "decLoad": {
+    "fetchMs": 16.359999999403954,
+    "createMs": 17.350000008940697
+   },
+   "decFirstMs": 14.185000002384186,
+   "decode": {
+    "n": 20,
+    "median": 3.554999992251396,
+    "p10": 3.4200000017881393,
+    "p90": 3.644999995827675,
+    "min": 3.3799999952316284,
+    "mean": 3.546000000089407
+   },
+   "frame": {
+    "1": {
+     "n": 13,
+     "median": 17.339999988675117,
+     "p10": 17.189999997615814,
+     "p90": 17.50499999523163,
+     "min": 17.17500001192093,
+     "mean": 17.34000000013755
+    },
+    "2": {
+     "n": 13,
+     "median": 24.114999994635582,
+     "p10": 23.79000000655651,
+     "p90": 24.275000005960464,
+     "min": 23.775000005960464,
+     "mean": 24.10307692220578
+    },
+    "3": {
+     "n": 13,
+     "median": 30.88000001013279,
+     "p10": 30.70999999344349,
+     "p90": 30.95499999821186,
+     "min": 30.640000000596046,
+     "mean": 30.865000001513042
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d1024_L4_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d1024_L4_c4_g16_full_fp16.onnx",
+     "d": 1024,
+     "layers": 4,
+     "heads": 16,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": false,
+     "dtype": "fp16",
+     "params": 94227976,
+     "bytes": 188492140
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 91.8500000089407,
+    "createMs": 182.53999999165535
+   },
+   "firstPassMs": 67.25,
+   "pass": {
+    "n": 20,
+    "median": 14.270000010728836,
+    "p10": 14.150000005960464,
+    "p90": 14.410000011324883,
+    "min": 14.090000003576279,
+    "mean": 14.274750003218651
+   },
+   "commitPass": {
+    "n": 20,
+    "median": 14.305000007152557,
+    "p10": 14.234999999403954,
+    "p90": 14.489999994635582,
+    "min": 14,
+    "mean": 14.31349999755621
+   },
+   "decLoad": {
+    "fetchMs": 15.510000005364418,
+    "createMs": 17.234999999403954
+   },
+   "decFirstMs": 13.870000004768372,
+   "decode": {
+    "n": 20,
+    "median": 3.554999992251396,
+    "p10": 3.489999994635582,
+    "p90": 3.635000005364418,
+    "min": 3.459999993443489,
+    "mean": 3.5519999995827676
+   },
+   "frame": {
+    "1": {
+     "n": 13,
+     "median": 32.33499999344349,
+     "p10": 32.11500000953674,
+     "p90": 32.479999989271164,
+     "min": 32.04500000178814,
+     "mean": 32.329615384340286
+    },
+    "2": {
+     "n": 13,
+     "median": 46.65500000119209,
+     "p10": 45.769999995827675,
+     "p90": 46.92499999701977,
+     "min": 45.67499999701977,
+     "mean": 46.51038461465102
+    },
+    "3": {
+     "n": 13,
+     "median": 61.28999999165535,
+     "p10": 60.66999998688698,
+     "p90": 61.60999999940395,
+     "min": 60.50999999046326,
+     "mean": 61.19653845979617
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d1024_L4_c4_g16_fsq_fp16",
+     "kind": "dyn",
+     "file": "dyn_d1024_L4_c4_g16_fsq_fp16.onnx",
+     "d": 1024,
+     "layers": 4,
+     "heads": 16,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": false,
+     "dtype": "fp16",
+     "params": 81155592,
+     "bytes": 162353446
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 87.32500000298023,
+    "createMs": 167.9399999976158
+   },
+   "firstPassMs": 55.57999999821186,
+   "pass": {
+    "n": 20,
+    "median": 12.590000003576279,
+    "p10": 12.509999990463257,
+    "p90": 12.770000010728836,
+    "min": 12.464999988675117,
+    "mean": 12.602999998629093
+   },
+   "commitPass": {
+    "n": 20,
+    "median": 12.595000013709068,
+    "p10": 12.515000000596046,
+    "p90": 12.725000008940697,
+    "min": 12.36999998986721,
+    "mean": 12.588750001043081
+   },
+   "decLoad": {
+    "fetchMs": 17.080000013113022,
+    "createMs": 16.839999988675117
+   },
+   "decFirstMs": 13.930000007152557,
+   "decode": {
+    "n": 20,
+    "median": 3.469999998807907,
+    "p10": 3.4099999964237213,
+    "p90": 3.614999994635582,
+    "min": 3.394999995827675,
+    "mean": 3.4924999997019768
+   },
+   "frame": {
+    "1": {
+     "n": 13,
+     "median": 28.944999992847443,
+     "p10": 28.69999998807907,
+     "p90": 29.135000005364418,
+     "min": 28.560000002384186,
+     "mean": 28.906538461263363
+    },
+    "2": {
+     "n": 13,
+     "median": 41.519999995827675,
+     "p10": 41.15999999642372,
+     "p90": 41.67500001192093,
+     "min": 41.00499999523163,
+     "mean": 41.432307691528244
+    },
+    "3": {
+     "n": 13,
+     "median": 53.88500000536442,
+     "p10": 53.66500000655651,
+     "p90": 54.19499999284744,
+     "min": 53.65500000119209,
+     "mean": 53.98153846195111
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d1024_L6_c4_g16_full_fp16",
+     "kind": "dyn",
+     "file": "dyn_d1024_L6_c4_g16_full_fp16.onnx",
+     "d": 1024,
+     "layers": 6,
+     "heads": 16,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "full",
+     "fused": false,
+     "dtype": "fp16",
+     "params": 127821322,
+     "bytes": 255693711
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 114.45499999821186,
+    "createMs": 257.20499999821186
+   },
+   "firstPassMs": 55.50499999523163,
+   "pass": {
+    "n": 20,
+    "median": 19.66500000655651,
+    "p10": 19.429999992251396,
+    "p90": 19.92500001192093,
+    "min": 19.17000000178814,
+    "mean": 19.650000001490117
+   },
+   "commitPass": {
+    "n": 20,
+    "median": 19.70999999344349,
+    "p10": 19.57999999821186,
+    "p90": 19.99500000476837,
+    "min": 19.319999992847443,
+    "mean": 19.7294999986887
+   },
+   "decLoad": {
+    "fetchMs": 16.53999999165535,
+    "createMs": 20.655000001192093
+   },
+   "decFirstMs": 15.359999999403954,
+   "decode": {
+    "n": 20,
+    "median": 3.4300000071525574,
+    "p10": 3.384999990463257,
+    "p90": 3.570000007748604,
+    "min": 3.375,
+    "mean": 3.444250000268221
+   },
+   "frame": {
+    "1": {
+     "n": 13,
+     "median": 42.37000000476837,
+     "p10": 42.2250000089407,
+     "p90": 42.85999999940395,
+     "min": 41.979999989271164,
+     "mean": 42.47692307715233
+    },
+    "2": {
+     "n": 13,
+     "median": 62.48999999463558,
+     "p10": 62.33500000834465,
+     "p90": 62.83999998867512,
+     "min": 61.28999999165535,
+     "mean": 62.49461538401934
+    },
+    "3": {
+     "n": 13,
+     "median": 82.24500000476837,
+     "p10": 81.57999999821186,
+     "p90": 83.34999999403954,
+     "min": 81.42500001192093,
+     "mean": 82.32076923205302
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d1024_L6_c4_g16_fsq_fp16",
+     "kind": "dyn",
+     "file": "dyn_d1024_L6_c4_g16_fsq_fp16.onnx",
+     "d": 1024,
+     "layers": 6,
+     "heads": 16,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": false,
+     "dtype": "fp16",
+     "params": 114748938,
+     "bytes": 229555017
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64_fp16",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64_fp16.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp16",
+     "params": 7648643,
+     "bytes": 15439812
+    },
+    "ep": "webgpu",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1,
+     2,
+     3
+    ],
+    "passIters": 20,
+    "frameIters": 13,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "webgpu",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 107.14499999582767,
+    "createMs": 213.84000000357628
+   },
+   "firstPassMs": 76.55500000715256,
+   "pass": {
+    "n": 20,
+    "median": 17.96000000834465,
+    "p10": 17.84000000357628,
+    "p90": 18.21500000357628,
+    "min": 17.79500000178814,
+    "mean": 17.97500000298023
+   },
+   "commitPass": {
+    "n": 20,
+    "median": 18.024999991059303,
+    "p10": 17.79000000655651,
+    "p90": 18.25499999523163,
+    "min": 17.644999995827675,
+    "mean": 18.00374999716878
+   },
+   "decLoad": {
+    "fetchMs": 15.614999994635582,
+    "createMs": 18.825000002980232
+   },
+   "decFirstMs": 13.949999988079071,
+   "decode": {
+    "n": 20,
+    "median": 3.5799999982118607,
+    "p10": 3.530000001192093,
+    "p90": 3.6749999970197678,
+    "min": 3.5150000005960464,
+    "mean": 3.5947499997913837
+   },
+   "frame": {
+    "1": {
+     "n": 13,
+     "median": 39.71500000357628,
+     "p10": 39.32999999821186,
+     "p90": 39.89000000059605,
+     "min": 39.28000000119209,
+     "mean": 39.64500000041265
+    },
+    "2": {
+     "n": 13,
+     "median": 57.46499998867512,
+     "p10": 56.849999994039536,
+     "p90": 58.11500000953674,
+     "min": 56.57999999821186,
+     "mean": 57.42884615292916
+    },
+    "3": {
+     "n": 13,
+     "median": 75.64000000059605,
+     "p10": 75.36499999463558,
+     "p90": 75.86499999463558,
+     "min": 75.29999999701977,
+     "mean": 75.64153846066732
+    }
+   },
+   "frameIncludesDecode": true
+  }
+ ]
+}

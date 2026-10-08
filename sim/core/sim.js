@@ -13,7 +13,7 @@
 import { Road, terrainSurfaceHeight, SEA_LEVEL } from './road.js';
 import { scatter } from './scatter.js';
 import { Director } from './director.js';
-import { makeCar, stepCar, SURFACE } from './car.js';
+import { makeCar, stepCar, steerForYawRate, SURFACE } from './car.js';
 import { makeDials, smoothDials, clampDial, DIAL_KEYS } from './dials.js';
 
 const GRAVITY_G = 11.0;       // base gravitational accel (scaled by the gravity dial)
@@ -21,6 +21,9 @@ const GRAVITY_G = 11.0;       // base gravitational accel (scaled by the gravity
 // horizon, Road.sampleAt() clamps every distant request to the final node, bunching
 // scenery at one point and making it appear only when the car gets closer.
 const HORIZON = 720;
+// Autopilot lane: the `road.offset` (+ = right of travel) it holds. -1.8 is the
+// left lane, where the reference game's autopilot drives.
+const AUTOPILOT_OFFSET = -1.8;
 
 export class SlowSim {
   constructor({ seed = 1, dt = 1 / 30, dials = {} } = {}) {
@@ -252,25 +255,31 @@ export class SlowSim {
     }
   }
 
-  /** Deterministic road-follower (SIM_UPGRADE §11.4) — pure-pursuit steering toward a
-   *  look-ahead point plus a lateral-error correction, with curvature-aware speed. Used
-   *  for relaxed play, soak tests, regression captures, and dataset action distributions.
-   *  Returns an action in the same convention sim.step() consumes. */
-  autopilotAction() {
-    const speed = Math.abs(this.car.speed);
-    // Clean pure-pursuit: aim at a look-ahead point on the centerline. The look-ahead
-    // itself corrects lateral drift, so no separate error term is needed (which is what
-    // caused the earlier weave). Look-ahead grows with speed for stability.
-    const la = 11 + speed * 0.9;
-    const tgt = this.road.sampleAt(this.carD + la);
-    const dx = tgt.x - this.car.x, dz = tgt.z - this.car.z;
-    const headErr = angleDiff(Math.atan2(dx, dz), this.car.heading);
-    // + steer turns the car toward increasing heading (its right).
-    const steer = clamp(headErr * 1.25, -1, 1);
+  /** Deterministic lane-keeper (SIM_UPGRADE §11.4) with curvature-aware speed. Used for
+   *  relaxed play, soak tests, regression captures, and dataset action distributions.
+   *  Returns an action in the same convention sim.step() consumes.
+   *
+   *  Stanley-style: the commanded yaw rate is the road's own turn rate (curvature
+   *  feed-forward) plus a correction steering the heading toward an angle that closes
+   *  the lateral error to the lane. steerForYawRate inverts the car's yaw model. Pure
+   *  pursuit on a ~25 m look-ahead cut long bends by ~1.7 m, which is harmless on the
+   *  centreline but put a lane-following car on the verge. */
+  autopilotAction({ offset = AUTOPILOT_OFFSET, cruise = 16 } = {}) {
+    const v = this.car.speed, speed = Math.abs(v);
+    const near = this.road.nearest(this.car.x, this.car.z, this.carD);
+    const roadHeading = Math.atan2(near.tangent.x, near.tangent.z);
+    // Increasing heading moves the car towards -offset, so `drift` > 0 => offset rising.
+    const drift = angleDiff(roadHeading, this.car.heading);
+    const latErr = offset - near.lateral;
+    const wantDrift = clamp(Math.atan2(0.9 * latErr, speed + 2), -0.3, 0.3);
+    const ahead = this.road.sampleAt(this.carD + 2 + speed * 0.25).curvature;
+    const yawRate = ahead * v - 2.4 * (wantDrift - drift);
+    const grip = this.dials.friction * (this._surface || SURFACE.road).gripMul;
+    const steer = steerForYawRate(yawRate, v, grip);
     // A relaxed cruise: lower speed means less lateral slip and tighter tracking on the
     // curvy generated roads. Slow further for upcoming curvature.
     const curv = Math.abs(this.road.sampleAt(this.carD + 22).curvature);
-    const targetSpeed = 16 * (1 - Math.min(0.55, curv * 55));
+    const targetSpeed = cruise * (1 - Math.min(0.55, curv * 55));
     const throttle = this.car.speed < targetSpeed - 1 ? 1 : this.car.speed > targetSpeed + 1 ? -0.4 : 0.2;
     return { steer, throttle };
   }

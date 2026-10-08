@@ -127,6 +127,24 @@ those build on.
 
 ## Known gaps / next levers
 
+> **Post-M2 audit (2026-07-14):** the manifest records action `a_i` before
+> applying it to produce frame `i+1`, but the training dataset paired target
+> frame `i` with `a_i`; eval correctly used `a_{i-1}`. The M3 branch fixes this
+> one-frame shift and adds an alternating-action regression test. Consequently,
+> the historical negative result for strong action conditioning is not a valid
+> final verdict and must be rerun on corrected transitions.
+>
+> **Re-measured on the corrected contract (2026-07-14):** `eval/eval_steering.py`
+> on the corrected-action control checkpoint (`checkpoints_m3_corrected`,
+> non-anchor, context 8 / 30 steps, held-out seed5) gives **action sensitivity
+> 0.0136** (mean |dream_left − dream_right|) — roughly 4× the buggy-contract
+> 0.0036 — with a positive on-target steering margin **+0.0021** (off − diag),
+> road-centroid shift **+0.01 px** (correct direction), and latent-L2 margin
+> **+0.36**. So action response is now measurable and directionally correct, but
+> still modest in magnitude, consistent with the intrinsic-single-frame-effect
+> diagnosis. This is the honest M5 steering baseline. Run via
+> `modal run deploy/modal_train.py::steering`.
+
 - **Steering/action response** (above) — the main remaining M2 quality gap.
 - **val_ce ≠ world-model quality:** teacher-forced CE rewards copying; free-run margin kept
   improving after val_ce bottomed. Best-checkpoint selection should use a free-run metric.

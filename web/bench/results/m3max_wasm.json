@@ -1,0 +1,298 @@
+{
+ "env": {
+  "ortVersion": "1.30.0",
+  "runtime": "native",
+  "crossOriginIsolated": true,
+  "hardwareConcurrency": 16,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+  "adapter": {
+   "vendor": "apple",
+   "architecture": "metal-3",
+   "device": "",
+   "description": ""
+  },
+  "features": [
+   "depth32float-stencil8",
+   "chromium-experimental-subgroup-matrix",
+   "rg11b10ufloat-renderable",
+   "texture-formats-tier1",
+   "bgra8unorm-storage",
+   "texture-compression-bc",
+   "dual-source-blending",
+   "core-features-and-limits",
+   "float32-filterable",
+   "indirect-first-instance",
+   "texture-compression-astc-sliced-3d",
+   "float32-blendable",
+   "subgroup-size-control",
+   "texture-compression-unaligned",
+   "texture-compression-astc",
+   "texture-compression-etc2",
+   "depth-clip-control",
+   "texture-compression-bc-sliced-3d",
+   "clip-distances",
+   "shader-f16",
+   "texture-formats-tier2",
+   "timestamp-query",
+   "primitive-index",
+   "texture-component-swizzle",
+   "subgroups"
+  ],
+  "limits": {
+   "maxBufferSize": 4294967292,
+   "maxStorageBufferBindingSize": 4294967292
+  }
+ },
+ "date": "2026-10-01T09:03:11.881Z",
+ "results": [
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d256_L4_c4_g16_fsq",
+     "kind": "dyn",
+     "file": "dyn_d256_L4_c4_g16_fsq.onnx",
+     "d": 256,
+     "layers": 4,
+     "heads": 4,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "dtype": "fp32",
+     "params": 7607688,
+     "bytes": 30497157
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp32",
+     "params": 7648643,
+     "bytes": 30858264
+    },
+    "ep": "wasm",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1
+    ],
+    "passIters": 8,
+    "frameIters": 5,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "wasm",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 21.480000004172325,
+    "createMs": 331.6799999922514
+   },
+   "firstPassMs": 47.69999998807907,
+   "pass": {
+    "n": 8,
+    "median": 19.25,
+    "p10": 18.439999997615814,
+    "p90": 19.810000002384186,
+    "min": 18.439999997615814,
+    "mean": 19.15187499858439
+   },
+   "commitPass": {
+    "n": 8,
+    "median": 20.820000007748604,
+    "p10": 20.109999999403954,
+    "p90": 22.395000010728836,
+    "min": 20.109999999403954,
+    "mean": 20.872500002384186
+   },
+   "decLoad": {
+    "fetchMs": 25.82999999821186,
+    "createMs": 18.70499999821186
+   },
+   "decFirstMs": 39.46999999880791,
+   "decode": {
+    "n": 8,
+    "median": 35.08500000834465,
+    "p10": 34.685000002384186,
+    "p90": 36.98499999940395,
+    "min": 34.685000002384186,
+    "mean": 35.23562500067055
+   },
+   "frame": {
+    "1": {
+     "n": 5,
+     "median": 75.15999999642372,
+     "p10": 70.07500000298023,
+     "p90": 75.48500001430511,
+     "min": 70.07500000298023,
+     "mean": 74.18600000143051
+    }
+   },
+   "frameIncludesDecode": true
+  },
+  {
+   "job": {
+    "dec": {
+     "name": "dec_h128_g16_f64",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp32",
+     "params": 7648643,
+     "bytes": 30858264
+    },
+    "ep": "wasm",
+    "kv": "capture",
+    "runtime": "native",
+    "passIters": 8
+   },
+   "ep": "wasm",
+   "kv": "capture",
+   "runtime": "native",
+   "decLoad": {
+    "fetchMs": 19.75499999523163,
+    "createMs": 98.84999999403954
+   },
+   "decFirstMs": 61.564999997615814,
+   "decode": {
+    "n": 8,
+    "median": 66.09000000357628,
+    "p10": 45.90500000119209,
+    "p90": 68.0700000077486,
+    "min": 45.90500000119209,
+    "mean": 62.448124999180436
+   }
+  },
+  {
+   "job": {
+    "dec": {
+     "name": "dec_h64_g16_f64",
+     "kind": "dec",
+     "file": "dec_h64_g16_f64.onnx",
+     "hidden": 64,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp32",
+     "params": 1915587,
+     "bytes": 7933185
+    },
+    "ep": "wasm",
+    "kv": "capture",
+    "runtime": "native",
+    "passIters": 8
+   },
+   "ep": "wasm",
+   "kv": "capture",
+   "runtime": "native",
+   "decLoad": {
+    "fetchMs": 12.765000000596046,
+    "createMs": 75.5549999922514
+   },
+   "decFirstMs": 34.76000000536442,
+   "decode": {
+    "n": 8,
+    "median": 22.435000002384186,
+    "p10": 17.21500000357628,
+    "p90": 33.769999995827675,
+    "min": 17.21500000357628,
+    "mean": 22.826875001192093
+   }
+  },
+  {
+   "job": {
+    "dyn": {
+     "name": "dyn_d384_L4_c4_g16_fsq_fused",
+     "kind": "dyn",
+     "file": "dyn_d384_L4_c4_g16_fsq_fused.onnx",
+     "d": 384,
+     "layers": 4,
+     "heads": 6,
+     "hd": 64,
+     "ctx": 4,
+     "grid": 16,
+     "S": 257,
+     "head": "fsq",
+     "fused": true,
+     "dtype": "fp32",
+     "params": 14581832,
+     "bytes": 71463899
+    },
+    "dec": {
+     "name": "dec_h128_g16_f64",
+     "kind": "dec",
+     "file": "dec_h128_g16_f64.onnx",
+     "hidden": 128,
+     "grid": 16,
+     "frame": 64,
+     "dtype": "fp32",
+     "params": 7648643,
+     "bytes": 30858264
+    },
+    "ep": "wasm",
+    "kv": "capture",
+    "runtime": "native",
+    "P": [
+     1
+    ],
+    "passIters": 8,
+    "frameIters": 5,
+    "sustainSec": 0,
+    "sustainP": 4
+   },
+   "ep": "wasm",
+   "kv": "capture",
+   "runtime": "native",
+   "dynLoad": {
+    "fetchMs": 43.79999999701977,
+    "createMs": 148.6000000089407
+   },
+   "firstPassMs": 111.98499999940395,
+   "pass": {
+    "n": 8,
+    "median": 124.625,
+    "p10": 108.1950000077486,
+    "p90": 157.75,
+    "min": 108.1950000077486,
+    "mean": 125.23250000178814
+   },
+   "commitPass": {
+    "n": 8,
+    "median": 123.88500000536442,
+    "p10": 108.92000000178814,
+    "p90": 148.63500000536442,
+    "min": 108.92000000178814,
+    "mean": 127.11312499828637
+   },
+   "decLoad": {
+    "fetchMs": 28.24500000476837,
+    "createMs": 13.924999997019768
+   },
+   "decFirstMs": 72.04499998688698,
+   "decode": {
+    "n": 8,
+    "median": 71.48499999940395,
+    "p10": 48.49499998986721,
+    "p90": 91.99000000953674,
+    "min": 48.49499998986721,
+    "mean": 70.69625000096858
+   },
+   "frame": {
+    "1": {
+     "n": 5,
+     "median": 181.98999999463558,
+     "p10": 164.39499999582767,
+     "p90": 218.92499999701977,
+     "min": 164.39499999582767,
+     "mean": 182.83199999928473
+    }
+   },
+   "frameIncludesDecode": true
+  }
+ ]
+}

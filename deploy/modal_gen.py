@@ -4,7 +4,7 @@ machine's CPU (and fan) stays free.
 The sim renders through headless Chromium's WebGL (SwiftShader / CPU GL), driven by
 Playwright, exactly like sim/headless/generate_pixels.mjs does locally. Each seed
 is one container writing data/seedN/{manifest.json, frames/*.npy} to the sr-models
-volume; seeds render in parallel.
+volume selected by `SR_MODAL_VOLUME`; seeds render in parallel.
 
   modal run deploy/modal_gen.py                       # seeds 6..12 (default), 2500 steps
   modal run deploy/modal_gen.py --seeds 6,7,8 --steps 2500
@@ -14,9 +14,10 @@ INTO /sim/node_modules because the sim does an ESM `import("playwright")`, which
 resolves up the directory tree from the script — not via NODE_PATH.
 """
 
+import os
 import modal
 
-app = modal.App("sr-gen")
+app = modal.App("sr-m3-gen")
 
 image = (
     modal.Image.from_registry("node:20-bookworm", add_python="3.11")
@@ -27,7 +28,8 @@ image = (
     )
     .env({"PLAYWRIGHT_BROWSERS_PATH": "/ms-playwright"})
 )
-vol = modal.Volume.from_name("sr-models")
+VOLUME = os.environ.get("SR_MODAL_VOLUME", "sr-m3-train")
+vol = modal.Volume.from_name(VOLUME)
 
 
 @app.function(image=image, volumes={"/models": vol}, timeout=60 * 60, cpu=4.0)

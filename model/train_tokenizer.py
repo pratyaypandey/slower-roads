@@ -15,6 +15,7 @@ import argparse
 import json
 import os
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
@@ -35,26 +36,37 @@ def frames_from_batch(item):
 
 
 def load_all_frames(data_dirs, device):
-    """Load every frame from one or more seed dirs into a (N,3,64,64) device tensor,
-    plus a boolean `has_next` mask (True where frame i+1 is the *same seed*'s
-    temporal successor). The mask is what the temporal-consistency loss consumes —
-    it must never pair the last frame of one seed with the first of the next.
+    """Load every frame from one or more episode dirs into a (N,3,64,64) **uint8**
+    device tensor, plus a boolean `has_next` mask (True where frame i+1 is the *same
+    episode*'s temporal successor). The mask is what the temporal-consistency loss
+    consumes -- it must never pair the last frame of one episode with the next's first.
 
-    Frames are cached on-device (the whole multi-seed set is a few hundred MB) so
-    training is compute-bound, not disk-bound.
+    Frames stay uint8 on-device (train_v2's 324k frames are 4 GB that way vs 16 GB
+    as float) and are converted per batch (`as_float`). Packed episodes
+    (frames_u8.npy, see model/data/frames.py) load in one read each.
     """
-    import numpy as np
+    from model.data.frames import episode_frames
     if isinstance(data_dirs, str):
         data_dirs = [data_dirs]
-    arrs, has_next = [], []
+    chunks, has_next = [], []
     for d in data_dirs:
-        manifest = json.load(open(os.path.join(d, "manifest.json")))
-        samples = manifest["samples"]
-        for j, s in enumerate(samples):
-            arrs.append(np.load(os.path.join(d, s["frame"])))
-            has_next.append(j < len(samples) - 1)  # last frame of this seed has no successor
-    frames = torch.from_numpy(np.stack(arrs)).float().to(device)
-    return frames, torch.tensor(has_next, device=device)
+        f = torch.from_numpy(np.ascontiguousarray(episode_frames(d, mmap=False)))
+        chunks.append(f.to(device))
+        has_next += [True] * (len(f) - 1) + [False]  # last frame has no successor
+    return torch.cat(chunks), torch.tensor(has_next, device=device)
+
+
+def as_float(frames_u8):
+    return frames_u8.float().div_(255.0)
+
+
+def resolve_data(data, split):
+    """--split <split.json>:<name> expands to that split's episode dirs."""
+    if not split:
+        return data
+    path, _, name = split.partition(":")
+    root = os.path.dirname(os.path.abspath(path))
+    return [os.path.join(root, d) for d in json.load(open(path))[name or "train"]]
 
 
 def train(args):
@@ -95,7 +107,7 @@ def train(args):
     # where x_next is x's same-seed successor (x_next is None on the DataLoader path).
     temporal_on = args.temporal_weight > 0
     if args.frame_cache:
-        all_frames, has_next = load_all_frames(args.data, device)
+        all_frames, has_next = load_all_frames(resolve_data(args.data, args.split), device)
         n = all_frames.shape[0]
         pair_idx = torch.nonzero(has_next, as_tuple=False).squeeze(1)  # i's with a successor
         steps_per_epoch = max(1, n // args.batch_size)
@@ -110,7 +122,7 @@ def train(args):
                 idx = perm[i * args.batch_size:(i + 1) * args.batch_size]
                 if len(idx) == 0:
                     continue
-                yield all_frames[idx], (all_frames[idx + 1] if temporal_on else None)
+                yield as_float(all_frames[idx]), (as_float(all_frames[idx + 1]) if temporal_on else None)
     else:
         if temporal_on:
             raise SystemExit("--temporal-weight needs --frame-cache (temporal frame order)")
@@ -219,6 +231,8 @@ def build_parser():
     p = argparse.ArgumentParser()
     p.add_argument("--data", nargs="+", default=["data/seed1"],
                    help="one or more seed dirs (frames concatenated; temporal pairs stay in-seed)")
+    p.add_argument("--split", default=None,
+                   help="<split.json>:<name>, e.g. data/train_v2/split.json:train (overrides --data)")
     p.add_argument("--arch", default="fsq", help="registered tokenizer name (default: fsq)")
     p.add_argument("--out", default="checkpoints")
     p.add_argument("--epochs", type=int, default=20)

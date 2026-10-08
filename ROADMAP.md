@@ -87,19 +87,19 @@ Either way: **architect the ONNX export so *any* layer is splittable from day on
 Each milestone is independently defensible. If a later one fails, the project still has a complete story at the previous one. Checkboxes are the shared tracker — tick as we go.
 
 ### M0 — Sim + oracle harness *(no ML risk; do this first, together)*
-- [ ] Three.js driving sim: procedural road, ≥3 biomes, car physics, WASD control
-- [ ] Explicit params exposed: weather, time-of-day, gravity, friction
-- [ ] Deterministic seeding (same seed + same actions → identical frames)
-- [ ] Data export: `(frame, action, next_frame, params)` at fixed res, to disk
-- [ ] Oracle replay harness: given a seed + action sequence, regenerate ground-truth frames for diffing
-- [ ] **Drift metric defined and implemented** (latent + pixel divergence vs. rollout length)
+- [x] Three.js driving sim: procedural road, ≥3 biomes, car physics, WASD control
+- [x] Explicit params exposed: weather, time-of-day, gravity, friction
+- [x] Deterministic seeding (same seed + same actions → identical state; pixel byte-test still desirable)
+- [x] Data export: `(frame, action, next_frame, params)` at fixed res, to disk
+- [x] Oracle replay harness: given a seed + action sequence, regenerate ground-truth frames for diffing
+- [x] **Drift metric defined and implemented** (latent + pixel divergence vs. rollout length)
 
 *Done when:* we can generate an arbitrary labeled dataset and, given any action sequence, produce the exact ground-truth future to compare against.
 
 ### M1 — Tokenizer
-- [ ] VQ-VAE/VAE trains to clean reconstruction on sim frames
+- [x] VQ-VAE/VAE trains to clean reconstruction on sim frames
 - [ ] Latent grid size chosen against the frame budget (not fidelity)
-- [ ] Encode/decode round-trip validated; codebook usage healthy (if VQ)
+- [x] Encode/decode round-trip validated; codebook usage healthy (if VQ)
 
 *Done when:* frames survive the latent round-trip with no visible degradation, at a grid size that leaves real-time headroom.
 
@@ -123,6 +123,10 @@ held-out seed: teacher-forced token-accuracy **0.567** (was 0.06), coherent 60-f
 response is weak — forcing left vs right yields near-identical dreams (`eval/plots/steering.gif`).
 Strong action conditioning (`--action-cond`, action injected at every frame position) was
 implemented + retrained but did **not** materially help (sensitivity 0.0036 vs 0.0030 baseline).
+Those steering numbers are retained as historical evidence only: the 2026-07-14 audit found
+that action `a_i` had been paired with frame `i` even though it drives `i→i+1`. The contract is
+now corrected throughout training and evaluation, so steering must be re-measured before M2
+can claim action responsiveness.
 Diagnosis: the weakness is largely *intrinsic* — next-frame prediction is dominated by the
 visual context (heading/curvature), so the action's single-frame effect is tiny. Strong steering
 needs a longer-horizon counterfactual objective or M5's CAA amplification, not just conditioning. Also load-bearing: judge world models against baselines (persistence/frozen), not
@@ -130,12 +134,14 @@ absolute drift; and inference uses a *bounded* context window (unbounded prefix 
 OOD — the eval default, and how M4's real-time KV cache runs).
 
 ### M3 — Anti-drift (the hard part; budget the most time here)
-- [ ] Diffusion Forcing / per-token noise levels in training
-- [ ] Training on the model's own noise-augmented rollouts (self-forcing)
-- [ ] Sim-anchor `λ` conditioning path implemented
+- [x] Discrete FSQ-local corruption with independent frame noise levels in training
+- [x] Training on exact KV-cached model rollouts (self-forcing analogue)
+- [x] Sim-anchor `λ` conditioning path implemented
 - [ ] **Drift curve:** coherence extended from seconds → minutes; plotted vs. rollout length, model size, `λ`
 
 *Done when:* at `λ=1` the road holds for a multi-minute drive; we have the drift-vs-`λ` curve that no other world-model paper can produce.
+
+*Status (2026-07-15):* **Seed5 two-minute gate passed.** After the additive λ=1 anchor reversed at the 3,600-frame gate (`1.044` vs control `1.006`), the diagnosis — content drift in the cached visual history, not attention concentration — was addressed with a **decoupled skeleton-memory + state-continuity architecture**: dedicated skeleton memory tokens that visual tokens cross-attend to *outside* the causal KV cache (no RoPE, so they never pollute the drifting visual Q/K), plus an auxiliary head regressing the per-frame `{x,z,heading,speed}` delta. Warm-started from the anchor (`--mem-cross-attn --state-head`), it holds **0.943 mean normalized AUC over 3,600 frames at λ=1** (survival 203) — the first model **below the frozen-baseline drift level (1.0) for the full two minutes**, beating the anchor by ~10% and the control. **Pristine seed2 (held-out test) confirms it**: λ=1 holds at **0.953** (survival 261) while λ=0 pure-AR fails at **1.045** (survival 125) — the drift-vs-λ safety-valve behaviour demonstrated on held-out data. The remaining polish is the smooth 5-point λ sweep for the headline figure. Earlier split ablations rejected corruption, uniform attention-recency bias, λ dropout, a short exact-self-rollout adaptation, and an output-only anchor. Modal uses isolated `sr-m3-train`/`sr-m3-val`/`sr-m3-test` Volumes in `slower-roads-m3`. See `docs/M3_RESULTS.md`.
 
 ### M4 — Real-time on-device *(product exists here)*
 - [ ] Decoder consistency-distilled to 1–2 steps

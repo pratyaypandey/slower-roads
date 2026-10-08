@@ -20,6 +20,7 @@ import numpy as np
 # dynamics config (torch-free). Import it so the tokens the dataset feeds in and
 # the tokens the dynamics core interprets can never silently drift apart.
 from model.dynamics.config import (
+    G,
     NUM_ACTION_TOKENS as ACTION_VOCAB,
     tokenize_action as _tokenize_action,
 )
@@ -42,10 +43,71 @@ def tokenize_action(action):
     return _tokenize_action(action["steer"], action["throttle"])
 
 
+def action_driving_frame(samples, frame_idx):
+    """Return the logged action that produced ``samples[frame_idx]``.
+
+    The sim records sample i *before* applying ``samples[i]["action"]``; that
+    action therefore drives frame/state i -> i+1.  A frame-aligned sequence must
+    pair frame i with action i-1.  Frame zero has no incoming action and uses the
+    neutral bucket.
+    """
+    if frame_idx <= 0:
+        return None
+    return samples[frame_idx - 1]["action"]
+
+
 # --- manifest + windowing (torch-free) --------------------------------------
 # The sim's state nests the car pose under state.car; pull the same 4-vector the
 # state-space dynamics model uses. heading/speed live there alongside x/z.
 STATE_KEYS = ("x", "z", "heading", "speed")
+ANCHOR_CHANNELS = 16
+
+
+def anchor_grid(skeleton, grid_size=G):
+    """Rasterize the cheap sim skeleton into a token-aligned conditioning grid.
+
+    Channels 0..4 are spatial road geometry; 5..15 broadcast global car and
+    environment state.  It intentionally contains no rendered pixels.
+    """
+    out = np.zeros((ANCHOR_CHANNELS, grid_size, grid_size), dtype=np.float32)
+    road = skeleton.get("road") or []
+    width = float(skeleton.get("width", 8.0))
+    max_forward = max([float(p.get("forward", 0.0)) for p in road] + [1.0])
+    for p in road:
+        forward = max(0.0, float(p.get("forward", 0.0)))
+        lateral = float(p.get("lateral", 0.0))
+        # Near road is at the bottom. Perspective narrows the corridor with depth.
+        y = int(round((1.0 - min(1.0, forward / max_forward)) * (grid_size - 1)))
+        lateral_scale = max(width, forward * 0.28)
+        x_mid = (0.5 + lateral / (2.0 * lateral_scale)) * (grid_size - 1)
+        half = max(0.5, width / (2.0 * lateral_scale) * (grid_size - 1) * 0.5)
+        x0 = max(0, int(round(x_mid - half)))
+        x1 = min(grid_size - 1, int(round(x_mid + half)))
+        x_center = min(grid_size - 1, max(0, int(round(x_mid))))
+        out[0, y, x0:x1 + 1] = 1.0
+        out[1, y, x_center] = 1.0
+        out[2, y, x0:x1 + 1] = np.clip(float(p.get("headingDelta", 0.0)) / np.pi, -1, 1)
+        out[3, y, x0:x1 + 1] = np.clip(float(p.get("curvature", 0.0)) * 20.0, -1, 1)
+        out[4, y, x0:x1 + 1] = np.clip(float(p.get("grade", 0.0)) * 10.0, -1, 1)
+
+    car = skeleton.get("car") or {}
+    env = skeleton.get("env") or {}
+    tod = float(env.get("timeOfDay", 0.0))
+    globals_ = [
+        np.clip(width / 20.0, 0, 1),
+        np.clip(float(car.get("speed", 0.0)) / 40.0, 0, 1),
+        np.clip(float(car.get("slip", 0.0)), -1, 1),
+        float(bool(car.get("grounded", True))),
+        np.clip(float(env.get("fog", 0.0)), 0, 1),
+        np.clip(float(env.get("rain", 0.0)), 0, 1),
+        np.clip(float(env.get("snow", 0.0)), 0, 1),
+        np.sin(tod), np.cos(tod),
+        np.clip(float(env.get("biomeX", 0.5)), 0, 1),
+        np.clip(float(env.get("biomeY", 0.5)), 0, 1),
+    ]
+    for channel, value in enumerate(globals_, start=5):
+        out[channel].fill(value)
+    return out
 
 
 def load_manifest(manifest_path):
@@ -116,14 +178,17 @@ def _state_vector(state):
 
 
 def assemble_item(manifest, manifest_dir, ctx_start, context, horizon,
-                  representation, frame_size, latents=None):
+                  representation, frame_size, latents=None, include_anchor=False,
+                  include_state=False, packed=None):
     """Build one training item as plain numpy arrays (see module docstring).
 
     representation='latent' yields precomputed token windows (context_tokens,
     target_tokens) from `latents` (N, tokens) instead of frames — the cache path
-    that skips the tokenizer at train time."""
+    that skips the tokenizer at train time. include_state adds the sim-state
+    vectors regardless of representation (the state-continuity head reads them even
+    on the latent path)."""
     want_rgb = representation in ("rgb", "both")
-    want_state = representation in ("state", "both")
+    want_state = representation in ("state", "both") or include_state
     want_latent = representation == "latent"
     samples = manifest["samples"]
     ctx = range(ctx_start, ctx_start + context)
@@ -131,10 +196,10 @@ def assemble_item(manifest, manifest_dir, ctx_start, context, horizon,
 
     item = {
         "context_actions": np.array(
-            [tokenize_action(samples[i]["action"]) for i in ctx], dtype=np.int64
+            [tokenize_action(action_driving_frame(samples, i)) for i in ctx], dtype=np.int64
         ),
         "target_actions": np.array(
-            [tokenize_action(samples[i]["action"]) for i in tgt], dtype=np.int64
+            [tokenize_action(action_driving_frame(samples, i)) for i in tgt], dtype=np.int64
         ),
         "meta": {
             "seed": manifest.get("seed"),
@@ -143,7 +208,11 @@ def assemble_item(manifest, manifest_dir, ctx_start, context, horizon,
             "target_start": ctx_start + context,
         },
     }
-    if want_rgb:
+    if want_rgb and packed is not None:   # (N,3,H,W) uint8 episode array (model/data/frames.py)
+        load = lambda i: _resize_chw(packed[i].astype(np.float32) / 255.0, frame_size)
+        item["context_frames"] = np.stack([load(i) for i in ctx])
+        item["target_frames"] = np.stack([load(i) for i in tgt])
+    elif want_rgb:
         item["context_frames"] = np.stack(
             [_load_frame_array(os.path.join(manifest_dir, samples[i]["frame"]), frame_size) for i in ctx]
         )
@@ -156,6 +225,11 @@ def assemble_item(manifest, manifest_dir, ctx_start, context, horizon,
     if want_latent:
         item["context_tokens"] = latents[list(ctx)].astype(np.int64)   # (T, tokens)
         item["target_tokens"] = latents[list(tgt)].astype(np.int64)    # (H, tokens)
+    if include_anchor:
+        if any("skeleton" not in samples[i] for i in [*ctx, *tgt]):
+            raise ValueError("anchor conditioning needs skeleton entries in every sample")
+        item["context_anchor"] = np.stack([anchor_grid(samples[i]["skeleton"]) for i in ctx])
+        item["target_anchor"] = np.stack([anchor_grid(samples[i]["skeleton"]) for i in tgt])
     return item
 
 
@@ -170,7 +244,8 @@ class SimSequenceDataset(_DatasetBase):
     """
 
     def __init__(self, manifest_path, context, horizon, representation="rgb",
-                 frame_size=64, sample_range=None, latents_path=None):
+                 frame_size=64, sample_range=None, latents_path=None,
+                 include_anchor=False, include_state=False):
         if representation not in ("rgb", "state", "both", "latent"):
             raise ValueError(f"unknown representation {representation!r}")
         self.manifest, self.manifest_dir = load_manifest(manifest_path)
@@ -178,6 +253,8 @@ class SimSequenceDataset(_DatasetBase):
         self.horizon = horizon
         self.representation = representation
         self.frame_size = frame_size
+        self.include_anchor = include_anchor
+        self.include_state = include_state
         # sample_range=(lo, hi) restricts to a contiguous slice of the trajectory
         # (train/val split); None = all samples.
         self.sample_range = sample_range
@@ -206,6 +283,12 @@ class SimSequenceDataset(_DatasetBase):
                     f"latents ({len(self.latents)}) and manifest samples "
                     f"({len(self.manifest['samples'])}) length mismatch at {path}")
 
+        # Packed uint8 frames (frames_u8.npy), memory-mapped, if the episode has them.
+        self.packed = None
+        packed_path = os.path.join(self.manifest_dir, "frames_u8.npy")
+        if representation in ("rgb", "both") and os.path.exists(packed_path):
+            self.packed = np.load(packed_path, mmap_mode="r")
+
     def __len__(self):
         return len(self._starts)
 
@@ -213,7 +296,8 @@ class SimSequenceDataset(_DatasetBase):
         item = assemble_item(
             self.manifest, self.manifest_dir, self._starts[idx],
             self.context, self.horizon, self.representation, self.frame_size,
-            latents=self.latents,
+            latents=self.latents, include_anchor=self.include_anchor,
+            include_state=self.include_state, packed=self.packed,
         )
         if torch is None:
             return item

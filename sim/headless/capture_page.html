@@ -15,27 +15,37 @@
     // size) and gets back the per-step actions + states + base64 RGBA frames.
     // Runs the REAL WebGL renderer (needs a GPU/browser), unlike generate.mjs.
     import { SlowSim } from "../core/index.js";
+    import { makePolicy } from "../core/policies.js";
     import { SimRenderer } from "../render/renderer.js";
 
-    window.captureDrive = async (seed, steps, size) => {
-      const canvas = document.getElementById("view");
+    // opts.policy: a core/policies.js profile (default: the autopilot). opts.policySeed
+    // seeds it (default: the world seed). Each sample also records the keys pressed.
+    let lastRenderer = null;   // released before the next episode builds its own
+    window.captureDrive = async (seed, steps, size, opts = {}) => {
+      if (lastRenderer) { lastRenderer.dispose(); lastRenderer = null; }
+      const old = document.getElementById("view");
+      const canvas = document.createElement("canvas");   // fresh canvas => fresh context
+      canvas.id = "view"; canvas.width = canvas.height = 512;
+      old.replaceWith(canvas);
       let contextLost = false;
       // Abort loudly on context loss — post-loss frames render blank/gray.
       canvas.addEventListener("webglcontextlost", () => { contextLost = true; });
       const sim = new SlowSim({ seed });
+      const policy = opts.policy ? makePolicy(opts.policy, opts.policySeed ?? seed, sim) : null;
       const renderer = new SimRenderer(canvas, { dataSize: size });
+      lastRenderer = renderer;
       renderer.setDisplaySize(512, 512);
 
       renderer.stepCamera(sim, sim.dt);  // seed the chase camera before frame 0
       const samples = [];
       for (let i = 0; i < steps; i++) {
-        const action = sim.autopilotAction();
+        const { action, keys } = policy ? policy.act(sim) : { action: sim.autopilotAction(), keys: undefined };
         if (contextLost) throw new Error("WebGL context lost mid-capture — frames would be blank. Use CPU rendering (default).");
         renderer.stepCamera(sim, sim.dt);     // advance the chase cam to follow the car
         renderer.render(sim, 0);              // draw current state
         const rgba = renderer.capture(size);  // Uint8Array size*size*4
         samples.push({
-          action,
+          action, keys,
           state: sim.state,
           skeleton: sim.skeleton(),
           labels: sim.frameLabels(),
@@ -51,6 +61,35 @@
         labels: sim.frameLabels(), rgba: toBase64(renderer.capture(size)),
       });
       return { seed, steps, dt: sim.dt, size, samples };
+    };
+
+    // Quick-look stills for renderer iteration (headless/snapshot.mjs): drive the
+    // autopilot and capture at the given steps, tiled into one PNG data URL.
+    window.captureStills = async (seed, stops, size, cols) => {
+      const canvas = document.getElementById("view");
+      const sim = new SlowSim({ seed });
+      const renderer = new SimRenderer(canvas, { dataSize: size });
+      renderer.setDisplaySize(512, 512);
+      renderer.stepCamera(sim, sim.dt);
+      const rows = Math.ceil(stops.length / cols);
+      const sheet = document.createElement("canvas");
+      sheet.width = cols * size; sheet.height = rows * size;
+      const g = sheet.getContext("2d");
+      const last = Math.max(...stops);
+      for (let i = 0, k = 0; i <= last; i++) {
+        renderer.stepCamera(sim, sim.dt);
+        if (i === stops[k]) {
+          renderer.render(sim, 0);
+          const rgba = renderer.capture(size);
+          const img = new ImageData(size, size);
+          for (let y = 0; y < size; y++)  // flip: WebGL origin is bottom-left
+            img.data.set(rgba.subarray((size - 1 - y) * size * 4, (size - y) * size * 4), y * size * 4);
+          g.putImageData(img, (k % cols) * size, Math.floor(k / cols) * size);
+          k++;
+        }
+        sim.step(sim.autopilotAction());
+      }
+      return sheet.toDataURL("image/png");
     };
 
     // Base64 in chunks — String.fromCharCode(...buf) overflows the call stack

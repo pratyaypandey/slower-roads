@@ -92,6 +92,19 @@ export function stepCar(car, action, dt, dials, surface = SURFACE.road) {
   return car;
 }
 
+/**
+ * Inverse of the yaw model in stepCar: the steer input in [-1, 1] that produces
+ * `yawRate` (rad/s) at `speed` with combined `grip`. Lets controllers (the
+ * autopilot) command a turn rate exactly instead of tuning a gain against it.
+ */
+export function steerForYawRate(yawRate, speed, grip) {
+  const s = Math.abs(speed);
+  const authority = MAX_YAW * (s / (s + 7)) * (1 - smoothstep(7, MAX_SPEED, s) * 0.48) * grip * (speed >= 0 ? 1 : -1);
+  if (Math.abs(authority) < 1e-4) return 0;
+  const shaped = clamp(yawRate / authority, -1, 1);
+  return Math.sign(shaped) * Math.pow(Math.abs(shaped), 1 / 1.25);
+}
+
 function clamp(v, lo, hi) {
   return v < lo ? lo : v > hi ? hi : v;
 }

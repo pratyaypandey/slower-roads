@@ -29,6 +29,7 @@ import torch
 from model.registry import load_tokenizer, load_dynamics
 from model.dynamics.sequence import build_context, action_to_vocab
 from model.dynamics.config import FRAME_STRIDE
+from model.data.dataset import action_driving_frame
 from eval.eval_dream import action_id
 
 
@@ -39,7 +40,7 @@ def _l1(a, b):
 def load_seq(data_dir, start, n, device):
     m = json.load(open(os.path.join(data_dir, "manifest.json")))["samples"]
     fr = np.stack([np.load(os.path.join(data_dir, m[i]["frame"])) for i in range(start, start + n)])
-    acts = [action_id(m[i]["action"]) for i in range(start, start + n)]
+    acts = [action_id(action_driving_frame(m, i)) for i in range(start, start + n)]
     return torch.from_numpy(fr).float().to(device), torch.tensor(acts, device=device)
 
 
@@ -67,7 +68,7 @@ def evaluate(tok, dyn, frames, acts, T, H, window):
     prefix = build_context(acts[:T].unsqueeze(0), toks[:T].unsqueeze(0))
     md, macc = [], []
     for k in range(H):
-        a = acts[T + k - 1].view(1)
+        a = acts[T + k].view(1)
         vis = dyn.generate_frame(prefix, a)
         md.append(_l1(tok.decode_indices(vis), frames[T + k:T + k + 1]))
         macc.append(float((vis == toks[T + k].unsqueeze(0)).float().mean()))

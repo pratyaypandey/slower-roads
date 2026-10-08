@@ -12,7 +12,7 @@ import { hash1, fbm2 } from './prng.js';
 import { terrainSurfaceHeight, SEA_LEVEL } from './road.js';
 
 const SPACING = 6;        // metres between scatter rows along the road
-const LMIN = 13;          // first lateral offset off the centerline (past the shoulder)
+const LMIN = 8.5;        // first lateral offset off the centerline (past the shoulder)
 const LMAX = 210;         // furthest scattered object
 const LSTEP = 7;          // lateral spacing between candidate slots
 const GRASS_LMAX = 46;    // grass only fills a near band
@@ -59,9 +59,9 @@ export function scatter(road, dFrom, dTo, seed, dials, director = null, { grass 
         // density so trees gather in copses with clearings between, instead of an even
         // lattice. Rock/bush persist in the clearings for ground interest.
         const grove = fbm2(x * 0.012, z * 0.012, seed + 880, 3);   // [-1,1]
-        const groveMul = 0.35 + smoothstep(-0.15, 0.4, grove) * 1.35;
+        const groveMul = 0.08 + smoothstep(-0.05, 0.45, grove) * 1.9;   // open land between copses
         const h0 = hash1(s0, seed);
-        const density = (0.34 + lush * 0.4 - (L / LMAX) * 0.15) * densMul * sideMul;
+        const density = (0.26 + lush * 0.3 - (L / LMAX) * 0.15) * densMul * sideMul;
         const treeDensity = density * groveMul;
         if (h0 > treeDensity && h0 > density * 0.4) continue;      // clearings still get rocks/bushes
         const y = terrainSurfaceHeight(anchor, lateral, x, z, seed, hilliness);
@@ -69,7 +69,7 @@ export function scatter(road, dFrom, dTo, seed, dials, director = null, { grass 
         const rot = h3 * 6.2832;
         let type, scale, radius;
         const inGrove = h0 < treeDensity;
-        if (inGrove && h0 < treeDensity * (0.25 + lush * 0.4)) { type = 'pine'; scale = 0.8 + h1 * 1.1; radius = 0.6 * scale; }
+        if (inGrove && h0 < treeDensity * (0.08 + lush * 0.16)) { type = 'pine'; scale = 0.8 + h1 * 1.1; radius = 0.6 * scale; }
         else if (inGrove && h0 < treeDensity * (0.6 + lush * 0.3)) { type = 'tree'; scale = 0.9 + h1 * 1.3; radius = 0.7 * scale; }
         else if (h2 < 0.5) { type = 'rock'; scale = 0.7 + h1 * 1.6; radius = 0.9 * scale; }
         else { type = 'bush'; scale = 0.7 + h1 * 1.2; radius = 0.8 * scale; }

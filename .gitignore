@@ -17,3 +17,12 @@ npm-debug.log*
 eval/tokenizer_ab/checkpoints/
 eval/tokenizer_ab/checkpoints_lowloss/
 *.pt
+
+# Step-1 WebGPU latency spike: regenerable random-weight models + local envs
+/web/bench/models/
+/web/bench/nightly/
+/export/.venv/
+
+# Model checkpoints (any extension, incl. .pth / metrics) stay out of git
+/checkpoints/
+/dist/
